@@ -49,6 +49,11 @@ jobs:
       - name: Enable Windows desktop support
         run: flutter config --enable-windows-desktop
 
+      - name: Recreate Windows scaffolding
+        run: |
+          cd apps/client_flutter
+          flutter create --platforms=windows .
+
       - name: Get client dependencies
         run: |
           cd apps/client_flutter
@@ -57,7 +62,7 @@ jobs:
       - name: Build Windows App
         run: |
           cd apps/client_flutter
-          flutter build windows --release
+          flutter build windows --release --verbose
 
       - name: Upload Windows App Artifact
         uses: actions/upload-artifact@v4
