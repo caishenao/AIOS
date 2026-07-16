@@ -35,17 +35,11 @@ jobs:
           name: headless-daemon-linux
           path: apps/headless_daemon/build/headless_daemon
 
-  build-flutter-client:
-    runs-on: ubuntu-latest
+  build-flutter-client-windows:
+    runs-on: windows-latest
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-
-      - name: Setup Java
-        uses: actions/setup-java@v4
-        with:
-          distribution: 'zulu'
-          java-version: '17'
 
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
@@ -57,13 +51,13 @@ jobs:
           cd apps/client_flutter
           flutter pub get
 
-      - name: Build Android APK
+      - name: Build Windows App
         run: |
           cd apps/client_flutter
-          flutter build apk --release
+          flutter build windows --release
 
-      - name: Upload Android APK Artifact
+      - name: Upload Windows App Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: client-flutter-android
-          path: apps/client_flutter/build/app/outputs/flutter-apk/app-release.apk
+          name: client-flutter-windows
+          path: apps/client_flutter/build/windows/x64/runner/Release/
