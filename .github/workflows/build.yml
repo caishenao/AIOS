@@ -46,6 +46,9 @@ jobs:
         with:
           channel: 'stable'
 
+      - name: Enable Windows desktop support
+        run: flutter config --enable-windows-desktop
+
       - name: Get client dependencies
         run: |
           cd apps/client_flutter
