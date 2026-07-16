@@ -94,6 +94,8 @@ jobs:
         run: |
           cd apps/client_flutter
           flutter create --platforms=linux,android .
+          echo "android.newDsl=false" >> android/gradle.properties
+          echo "android.builtInKotlin=false" >> android/gradle.properties
 
       - name: Get client dependencies
         run: |
