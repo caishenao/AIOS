@@ -1,0 +1,19 @@
+[project]
+name = "omniparser-server"
+version = "0.1.0"
+description = "FastAPI server wrapping Microsoft's OmniParser for structured UI screen parsing"
+dependencies = [
+    "fastapi>=0.110.0",
+    "uvicorn>=0.28.0",
+    "torch>=2.2.0",
+    "torchvision>=0.17.0",
+    "ultralytics>=8.1.0",
+    "transformers>=4.38.0",
+    "pillow>=10.2.0",
+    "python-multipart>=0.0.9",
+    "pydantic>=2.6.0",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"

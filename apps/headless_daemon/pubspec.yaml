@@ -1,0 +1,14 @@
+name: headless_daemon
+description: Headless AIOS daemon for Linux servers and edge gateways.
+version: 1.0.0
+publish_to: 'none'
+
+environment:
+  sdk: '>=3.5.0 <4.0.0'
+
+dependencies:
+  http: ^1.2.0
+  puppeteer: ^3.25.1
+  uuid: ^4.5.1
+dev_dependencies:
+  test: ^1.31.2

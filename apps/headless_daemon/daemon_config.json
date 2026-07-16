@@ -1,0 +1,14 @@
+{
+  "id": "cdb60ad5-95b3-4c74-8c74-31aba587fbf5",
+  "name": "TestIntegrationDaemon",
+  "port": 19000,
+  "skills": [
+    "command_exec",
+    "file_upload",
+    "iot_data",
+    "iot_control",
+    "script_exec",
+    "screen_parse"
+  ],
+  "auth": "none"
+}

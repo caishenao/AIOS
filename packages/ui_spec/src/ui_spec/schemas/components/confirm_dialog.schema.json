@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "message": { "type": "string" },
+    "confirmAction": { "type": "string" },
+    "cancelAction": { "type": "string" },
+    "severity": {
+      "type": "string",
+      "enum": ["normal", "warning", "danger"]
+    },
+    "theme": { "type": "object" }
+  },
+  "required": ["message", "confirmAction", "cancelAction"]
+}

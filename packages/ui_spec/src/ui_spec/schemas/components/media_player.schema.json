@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "streamUrl": { "type": "string" },
+    "poster": { "type": "string" },
+    "type": {
+      "type": "string",
+      "enum": ["video", "audio"]
+    },
+    "title": { "type": "string" },
+    "variant": { "type": "string" },
+    "theme": { "type": "object" }
+  },
+  "required": ["streamUrl", "type"]
+}

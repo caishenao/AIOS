@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "name": { "type": "string" },
+    "state": { "type": "boolean" },
+    "type": {
+      "type": "string",
+      "enum": ["light", "switch", "climate", "lock", "cover", "sensor"]
+    },
+    "controllable": { "type": "boolean" },
+    "brightness": { "type": "number" },
+    "variant": { "type": "string" },
+    "theme": { "type": "object" }
+  },
+  "required": ["name", "state", "type"]
+}

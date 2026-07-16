@@ -1,0 +1,69 @@
+name: Build and Package applications
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  build-headless-daemon:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Dart SDK
+        uses: dart-lang/setup-dart@v1
+        with:
+          sdk: stable
+
+      - name: Get daemon dependencies
+        run: |
+          cd apps/headless_daemon
+          dart pub get
+
+      - name: Compile Headless Daemon EXE
+        run: |
+          cd apps/headless_daemon
+          mkdir -p build
+          dart compile exe bin/main.dart -o build/headless_daemon
+
+      - name: Upload Headless Daemon Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: headless-daemon-linux
+          path: apps/headless_daemon/build/headless_daemon
+
+  build-flutter-client:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'zulu'
+          java-version: '17'
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+
+      - name: Get client dependencies
+        run: |
+          cd apps/client_flutter
+          flutter pub get
+
+      - name: Build Android APK
+        run: |
+          cd apps/client_flutter
+          flutter build apk --release
+
+      - name: Upload Android APK Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: client-flutter-android
+          path: apps/client_flutter/build/app/outputs/flutter-apk/app-release.apk

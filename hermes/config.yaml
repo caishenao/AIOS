@@ -1,0 +1,73 @@
+# Home Steward — Hermes Agent Configuration
+# Copy to ~/.hermes/config.yaml or use: hermes config load ./hermes/config.yaml
+# API keys go in ~/.hermes/.env (never commit secrets!)
+
+# ---------------------------------------------------------------------------
+# Model Provider
+# ---------------------------------------------------------------------------
+model:
+  provider: ollama
+  default: hermes3              # Nous Hermes 3 via Ollama
+  base_url: http://127.0.0.1:11434/v1
+
+# Additional / alternative providers (uncomment as needed):
+# providers:
+#   nous-portal:
+#     base_url: https://api.nousresearch.com/v1
+#     # api_key in ~/.hermes/.env → NOUS_PORTAL_API_KEY=sk-xxx
+#   openrouter:
+#     base_url: https://openrouter.ai/api/v1
+#     # api_key in ~/.hermes/.env → OPENROUTER_API_KEY=sk-xxx
+
+# ---------------------------------------------------------------------------
+# MCP Servers (Device / Tool integrations)
+# ---------------------------------------------------------------------------
+mcp_servers:
+  # Standard File System MCP Server
+  # Requires: Node.js (npx)
+  filesystem:
+    command: "npx"
+    args: ["-y", "@modelcontextprotocol/server-filesystem", "D:\\work\\self\\AIOS"]
+    enabled: true
+
+  # Standard Fetch (Network Request) MCP Server
+  # Requires: Node.js (npx) or uv (if using python equivalent)
+  fetch:
+    command: "uvx"
+    args: ["mcp-server-fetch"]
+    enabled: true
+
+  # Home Assistant — official MCP Server integration
+  # Requires: HA 2025.3+, MCP Server integration enabled,
+  #           entities exposed via Settings > Voice Assistants > Expose
+  home-assistant:
+    url: "${HA_MCP_URL}"          # e.g. http://homeassistant.local:8123/api/mcp
+    headers:
+      Authorization: "Bearer ${HA_TOKEN}"
+    enabled: true
+
+  # ESP RainMaker — official Espressif MCP Server (stdio)
+  # Requires: pip install esp-rainmaker-mcp, esp-rainmaker-cli login
+  # esp-rainmaker:
+  #   command: "uv"
+  #   args: ["run", "--with", "esp-rainmaker-mcp", "esp-rainmaker-mcp"]
+  #   enabled: false
+
+  # ESP32 direct via MQTT (requires mcp_proxy MQTT bridge)
+  # esp32-mqtt:
+  #   url: "http://127.0.0.1:8081/mcp"    # via mcp_proxy MQTT bridge
+  #   enabled: false
+
+# ---------------------------------------------------------------------------
+# Skills
+# ---------------------------------------------------------------------------
+skills:
+  external_dirs:
+    - ./skills                    # repo-local skills (device-control, UI styles)
+    # - ~/.hermes/skills          # user-global skills (auto-discovered)
+
+# ---------------------------------------------------------------------------
+# Custom Tools
+# ---------------------------------------------------------------------------
+# The render_ui tool is registered via ~/.hermes/custom_tools/render_ui.py
+# It is auto-discovered by Hermes at startup.

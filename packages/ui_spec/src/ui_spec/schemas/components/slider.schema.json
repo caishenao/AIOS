@@ -1,0 +1,13 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "label": { "type": "string" },
+    "min": { "type": "number" },
+    "max": { "type": "number" },
+    "value": { "type": "number" },
+    "step": { "type": "number" },
+    "theme": { "type": "object" }
+  },
+  "required": ["label", "min", "max", "value"]
+}

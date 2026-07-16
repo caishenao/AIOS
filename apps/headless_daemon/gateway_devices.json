@@ -1,0 +1,24 @@
+[
+  {
+    "id": "living_room_light",
+    "name": "客厅大灯",
+    "type": "light",
+    "state": "off",
+    "brightness": 80
+  },
+  {
+    "id": "gateway_thermostat",
+    "name": "温控器",
+    "type": "thermostat",
+    "temperature": 24.5,
+    "humidity": 55.0,
+    "target_temp": 25.0
+  },
+  {
+    "id": "smart_switch",
+    "name": "智能插座",
+    "type": "switch",
+    "state": "on",
+    "current_power_w": 12.4
+  }
+]

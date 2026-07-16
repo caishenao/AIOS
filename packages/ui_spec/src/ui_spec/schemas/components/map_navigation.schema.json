@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "startLocation": { "type": "string" },
+    "endLocation": { "type": "string" },
+    "currentStep": { "type": "string" },
+    "steps": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "etaMinutes": { "type": "integer" },
+    "distanceKm": { "type": "number" },
+    "coordinates": {
+      "type": "array",
+      "items": {
+        "type": "array",
+        "items": { "type": "number" },
+        "minItems": 2,
+        "maxItems": 2
+      }
+    },
+    "theme": { "type": "object" }
+  },
+  "required": ["startLocation", "endLocation", "etaMinutes", "distanceKm"]
+}

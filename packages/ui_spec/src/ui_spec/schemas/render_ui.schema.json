@@ -1,0 +1,49 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "render_ui payload schema",
+  "type": "object",
+  "required": ["surfaceId", "root"],
+  "properties": {
+    "surfaceId": {
+      "type": "string",
+      "description": "Target rendering surface, default 'main'"
+    },
+    "styleSkill": {
+      "type": "string",
+      "description": "Currently active UI style skill name"
+    },
+    "root": {
+      "$ref": "#/$defs/node"
+    }
+  },
+  "$defs": {
+    "node": {
+      "type": "object",
+      "required": ["component"],
+      "properties": {
+        "component": {
+          "type": "string",
+          "description": "Catalog component name"
+        },
+        "props": {
+          "type": "object",
+          "description": "Component properties matching its schema"
+        },
+        "bindings": {
+          "type": "object",
+          "description": "Data bindings mapping props to DataContext paths"
+        },
+        "events": {
+          "type": "object",
+          "description": "Event mapping to action names"
+        },
+        "children": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/node"
+          }
+        }
+      }
+    }
+  }
+}

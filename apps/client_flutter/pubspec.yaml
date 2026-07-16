@@ -1,0 +1,37 @@
+name: home_steward
+description: Cross-platform smart home butler — Home Steward
+publish_to: 'none'
+version: 0.1.0
+
+environment:
+  sdk: '>=3.5.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_riverpod: ^2.6.1
+  riverpod_annotation: ^2.6.1
+  web_socket_channel: ^3.0.1
+  json_annotation: ^4.9.0
+  shared_preferences: ^2.3.0
+  go_router: ^14.0.0
+  google_fonts: ^6.2.0
+  uuid: ^4.5.1
+  http: ^1.2.0
+  speech_to_text: ^6.6.1
+  flutter_tts: ^4.0.2
+  nsd: ^5.0.1
+  google_generative_ai: ^0.4.6
+  async: ^2.13.1
+  rfw: ^1.1.3
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^5.0.0
+  build_runner: ^2.4.0
+  json_serializable: ^6.8.0
+  riverpod_generator: ^2.6.2
+
+flutter:
+  uses-material-design: true

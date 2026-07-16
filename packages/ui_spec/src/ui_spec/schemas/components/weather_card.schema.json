@@ -1,0 +1,24 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "location": { "type": "string" },
+    "temp": { "type": "number" },
+    "condition": { "type": "string" },
+    "hourly": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "time": { "type": "string" },
+          "temp": { "type": "number" },
+          "condition": { "type": "string" }
+        },
+        "required": ["time", "temp", "condition"]
+      }
+    },
+    "variant": { "type": "string" },
+    "theme": { "type": "object" }
+  },
+  "required": ["location", "temp", "condition"]
+}

@@ -1,0 +1,27 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "series": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "label": { "type": "string" },
+          "data": {
+            "type": "array",
+            "items": { "type": "number" }
+          }
+        },
+        "required": ["label", "data"]
+      }
+    },
+    "kind": {
+      "type": "string",
+      "enum": ["line", "bar", "gauge"]
+    },
+    "title": { "type": "string" },
+    "theme": { "type": "object" }
+  },
+  "required": ["series", "kind"]
+}

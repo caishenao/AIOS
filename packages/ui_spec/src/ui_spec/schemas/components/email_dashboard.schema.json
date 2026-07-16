@@ -1,0 +1,25 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "unreadCount": { "type": "integer" },
+    "selectedEmailId": { "type": "string" },
+    "emails": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string" },
+          "sender": { "type": "string" },
+          "subject": { "type": "string" },
+          "snippet": { "type": "string" },
+          "date": { "type": "string" },
+          "read": { "type": "boolean" }
+        },
+        "required": ["id", "sender", "subject", "snippet", "date", "read"]
+      }
+    },
+    "theme": { "type": "object" }
+  },
+  "required": ["emails"]
+}
