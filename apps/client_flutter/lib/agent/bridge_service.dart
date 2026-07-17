@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:nsd/nsd.dart' as nsd;
+import 'network_utils.dart';
 
 final bridgeServiceProvider = Provider<BridgeService>((ref) {
   return BridgeService();
@@ -109,12 +110,13 @@ class BridgeService {
 
     try {
       if (request.method == 'GET' && request.uri.path == '/agent-card') {
+        final localIp = await getLocalIpAddress();
         final card = {
           'id': agentConfig['id'] ?? 'unknown',
           'name': agentConfig['name'] ?? 'Bridged Agent',
           'description': agentConfig['description'] ?? 'Bridged CLI Agent on ${Platform.operatingSystem}',
           'version': '1.0.0',
-          'endpoint': 'http://${Platform.localHostname}:$port',
+          'endpoint': 'http://$localIp:$port',
           'skills': ['cli_bridge'],
           'auth': 'none'
         };

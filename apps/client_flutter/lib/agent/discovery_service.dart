@@ -9,6 +9,7 @@ import 'package:uuid/uuid.dart';
 import '../config/capability_registry.dart';
 import 'local_agent_service.dart';
 import 'chat_provider.dart';
+import 'network_utils.dart';
 
 final discoveryServiceProvider = Provider<DiscoveryService>((ref) {
   return DiscoveryService(ref);
@@ -52,7 +53,7 @@ class DiscoveryService {
       debugPrint('mDNS Service registered: $serviceName');
 
       // 3. Start Discovery
-      _discovery = await nsd.startDiscovery('_a2a._tcp');
+      _discovery = await nsd.startDiscovery('_a2a._tcp', ipLookupType: nsd.IpLookupType.any);
       _discovery!.addListener(() {
         _handleServicesChanged();
       });
@@ -132,12 +133,13 @@ class DiscoveryService {
 
     try {
       if (request.method == 'GET' && request.uri.path == '/agent-card') {
+        final localIp = await getLocalIpAddress();
         final card = {
           'id': _agentId,
           'name': 'Flutter Local Agent (${Platform.localHostname})',
           'description': 'Decentralized local agent hosted on ${Platform.operatingSystem}',
           'version': '1.0.0',
-          'endpoint': 'http://${Platform.localHostname}:${_server!.port}',
+          'endpoint': 'http://$localIp:${_server!.port}',
           'skills': ['chat', 'ui_generation', 'hardware_info', 'local_file'],
           'auth': 'none'
         };
@@ -216,11 +218,30 @@ class DiscoveryService {
   }
 
   Future<void> _processDiscoveredService(nsd.Service service) async {
-    final host = service.host;
     final port = service.port;
-    if (host == null || port == null) return;
+    if (port == null) return;
 
-    final endpoint = 'http://$host:$port';
+    // Prefer resolved non-loopback IPv4 address
+    String resolvedHost = service.host ?? 'localhost';
+    if (service.addresses != null && service.addresses!.isNotEmpty) {
+      try {
+        final actualAddress = service.addresses!.firstWhere(
+          (addr) => !addr.isLoopback && addr.type == InternetAddressType.IPv4,
+        );
+        resolvedHost = actualAddress.address;
+      } catch (_) {
+        try {
+          final anyActualAddress = service.addresses!.firstWhere(
+            (addr) => !addr.isLoopback,
+          );
+          resolvedHost = anyActualAddress.address;
+        } catch (_) {
+          resolvedHost = service.addresses!.first.address;
+        }
+      }
+    }
+
+    final endpoint = 'http://$resolvedHost:$port';
     try {
       final response = await http.get(Uri.parse('$endpoint/agent-card')).timeout(const Duration(seconds: 5));
       if (response.statusCode == 200) {
