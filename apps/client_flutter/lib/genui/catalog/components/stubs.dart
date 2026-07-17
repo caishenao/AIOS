@@ -22,20 +22,9 @@ class WeatherCardComponent {
   }
 }
 
-class MetricChartComponent {
-  static void register(CatalogRegistry registry) {
-    registry.register('MetricChart', ({required props, required children, bindings, events, theme, required context, onEvent}) => const StubComponent('MetricChart'));
-  }
-}
-
 class SectionComponent {
   static void register(CatalogRegistry registry) {
     registry.register('Section', ({required props, required children, bindings, events, theme, required context, onEvent}) => const StubComponent('Section'));
-  }
-}
-class ConfirmDialogComponent {
-  static void register(CatalogRegistry registry) {
-    registry.register('ConfirmDialog', ({required props, required children, bindings, events, theme, required context, onEvent}) => const StubComponent('ConfirmDialog'));
   }
 }
 class TextInputComponent {

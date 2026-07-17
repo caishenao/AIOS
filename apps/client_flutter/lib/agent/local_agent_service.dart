@@ -78,6 +78,8 @@ Available components:
 - `EmailDashboard` (props: emails: Array<{id, sender, subject, snippet, date, read}>, unreadCount, selectedEmailId)
 - `MapNavigation` (props: startLocation, endLocation, steps: Array<string>, etaMinutes, distanceKm, coordinates: Array<[longitude, latitude]> of route points)
 - `ProductCard` (props: title, price, description, imageUrl, buyUrl, buttonText)
+- `ConfirmDialog` (props: title, message, confirmAction, cancelAction, confirmText, cancelText, payload: Map)
+- `MetricChart` (props: title, subtitle, kind: 'line' | 'bar', series: Array<{label: string, value: number, color?: string}>)
 - `ListView`, `Row`, `Column` (props: children)
 
 If a task requires another agent, use the `call_a2a_agent` tool.

@@ -11,6 +11,8 @@ import 'components/media_player.dart';
 import 'components/email_dashboard.dart';
 import 'components/map_navigation.dart';
 import 'components/product_card.dart';
+import 'components/metric_chart.dart';
+import 'components/confirm_dialog.dart';
 import 'components/stubs.dart';
 
 typedef EventCallback = void Function(String action, Map<String, dynamic> payload);
@@ -92,12 +94,12 @@ class CatalogRegistry {
     EmailDashboardComponent.register(this);
     MapNavigationComponent.register(this);
     ProductCardComponent.register(this);
+    MetricChartComponent.register(this);
+    ConfirmDialogComponent.register(this);
     
     // Stubs
     WeatherCardComponent.register(this);
-    MetricChartComponent.register(this);
     SectionComponent.register(this);
-    ConfirmDialogComponent.register(this);
     TextInputComponent.register(this);
     SliderComponent.register(this);
     ToggleComponent.register(this);

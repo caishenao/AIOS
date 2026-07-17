@@ -1,205 +1,291 @@
-import 'dart:math' as math;
-
+import 'dart:math';
 import 'package:flutter/material.dart';
-
-import '../../surface/ui_node.dart';
 import '../catalog_registry.dart';
 import '../theme_tokens.dart';
 
-/// Displays data visualization using CustomPainter — no external chart lib.
-///
-/// Props:
-/// - `series` (List<Map>): Data points, each with `label` (String) and `value` (num).
-/// - `kind` (String): Chart type — `"bar"` or `"line"`.
-/// - `title` (String?): Optional chart title.
-/// - `unit` (String?): Value unit label (e.g. `"kWh"`, `"%"`).
-/// - `height` (num?): Chart height in logical pixels, default 200.
-class CatalogMetricChart extends StatelessWidget {
-  final Map<String, dynamic> props;
-  final List<UiNode> children;
-  final ThemeTokens? theme;
-  final Map<String, String>? events;
-  final EventCallback? onEvent;
+class ChartDataPoint {
+  final String label;
+  final double value;
+  final Color? color;
 
-  const CatalogMetricChart({
+  ChartDataPoint({required this.label, required this.value, this.color});
+}
+
+class MetricChartComponent extends StatelessWidget {
+  final String title;
+  final String? subtitle;
+  final String kind; // 'line' or 'bar'
+  final List<ChartDataPoint> series;
+  final ThemeTokens theme;
+
+  const MetricChartComponent({
     super.key,
-    required this.props,
-    this.children = const [],
-    this.theme,
-    this.events,
-    this.onEvent,
+    required this.title,
+    this.subtitle,
+    required this.kind,
+    required this.series,
+    required this.theme,
   });
 
-  /// Registers this component in the [CatalogRegistry].
   static void register(CatalogRegistry registry) {
     registry.register('MetricChart', ({
-      required Map<String, dynamic> props,
-      required List<UiNode> children,
-      Map<String, dynamic>? bindings,
-      Map<String, String>? events,
-      ThemeTokens? theme,
-      required BuildContext context,
-      EventCallback? onEvent,
+      required props,
+      required children,
+      bindings,
+      events,
+      theme,
+      required context,
+      onEvent,
     }) {
-      return CatalogMetricChart(
-        props: props,
-        children: children,
-        theme: theme,
-        events: events,
-        onEvent: onEvent,
+      final rawSeries = props['series'] as List<dynamic>? ?? [];
+      final dataPoints = rawSeries.map((item) {
+        if (item is Map) {
+          final label = (item['label'] ?? '').toString();
+          final value = (item['value'] as num?)?.toDouble() ?? 0.0;
+          final colorStr = item['color'] as String?;
+          Color? color;
+          if (colorStr != null) {
+            try {
+              color = Color(int.parse(colorStr.replaceFirst('#', '0xFF')));
+            } catch (_) {}
+          }
+          return ChartDataPoint(label: label, value: value, color: color);
+        } else if (item is num) {
+          return ChartDataPoint(label: '', value: item.toDouble());
+        }
+        return ChartDataPoint(label: '', value: 0.0);
+      }).toList();
+
+      return MetricChartComponent(
+        title: props['title'] as String? ?? '指标趋势',
+        subtitle: props['subtitle'] as String?,
+        kind: props['kind'] as String? ?? 'line',
+        series: dataPoints,
+        theme: theme ?? ThemeTokens.minimal,
       );
     });
   }
 
   @override
   Widget build(BuildContext context) {
-    final t = theme ?? ThemeTokens.minimal;
-    final title = props['title'] as String?;
-    final unit = props['unit'] as String? ?? '';
-    final kind = props['kind'] as String? ?? 'bar';
-    final chartHeight = (props['height'] as num?)?.toDouble() ?? 200.0;
-    final rawSeries =
-        (props['series'] as List<dynamic>?)?.cast<Map<String, dynamic>>() ??
-            [];
-
-    final series = rawSeries
-        .map((e) => _DataPoint(
-              label: e['label']?.toString() ?? '',
-              value: (e['value'] as num?)?.toDouble() ?? 0,
-            ))
-        .toList();
+    final t = theme;
+    if (series.isEmpty) {
+      return Container(
+        margin: const EdgeInsets.only(bottom: 12),
+        padding: EdgeInsets.all(t.baseSpacing),
+        decoration: BoxDecoration(
+          color: t.surface.withAlpha(220),
+          borderRadius: BorderRadius.circular(t.cardRadius),
+          border: Border.all(color: t.accent.withAlpha(30)),
+        ),
+        child: const Center(child: Text('暂无图表数据', style: TextStyle(color: Colors.grey))),
+      );
+    }
 
     return Container(
-      width: double.infinity,
-      margin: EdgeInsets.symmetric(vertical: t.baseSpacing / 2),
+      margin: const EdgeInsets.only(bottom: 12),
       padding: EdgeInsets.all(t.baseSpacing),
       decoration: BoxDecoration(
-        color: t.surface,
+        color: t.surface.withAlpha(220),
         borderRadius: BorderRadius.circular(t.cardRadius),
+        border: Border.all(color: t.accent.withAlpha(60)),
+        boxShadow: [
+          BoxShadow(
+            color: t.accent.withAlpha(10),
+            blurRadius: 16,
+            offset: const Offset(0, 8),
+          )
+        ],
       ),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          if (title != null) ...[
-            Text(
-              title,
-              style: TextStyle(
-                color: t.onSurface,
-                fontSize: 16 * t.fontScale,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-            SizedBox(height: t.baseSpacing),
-          ],
-          if (series.isEmpty)
-            SizedBox(
-              height: chartHeight,
-              child: Center(
-                child: Text(
-                  'No data',
-                  style: TextStyle(
-                    color: t.onSurface.withAlpha(80),
-                    fontSize: 14 * t.fontScale,
-                  ),
+          // Header
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: TextStyle(
+                        color: t.onSurface,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14 * t.fontScale,
+                      ),
+                    ),
+                    if (subtitle != null) ...[
+                      const SizedBox(height: 2),
+                      Text(
+                        subtitle!,
+                        style: TextStyle(
+                          color: t.onSurface.withAlpha(120),
+                          fontSize: 11 * t.fontScale,
+                        ),
+                      ),
+                    ],
+                  ],
                 ),
               ),
-            )
-          else
-            SizedBox(
-              height: chartHeight,
-              child: CustomPaint(
-                size: Size(double.infinity, chartHeight),
-                painter: kind == 'line'
-                    ? _LineChartPainter(
-                        series: series, theme: t, unit: unit)
-                    : _BarChartPainter(
-                        series: series, theme: t, unit: unit),
+              Icon(
+                kind == 'bar' ? Icons.bar_chart : Icons.show_chart,
+                color: t.accent,
+                size: 20,
               ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          // Chart Canvas
+          SizedBox(
+            height: 140,
+            child: CustomPaint(
+              painter: kind == 'bar'
+                  ? BarChartPainter(series: series, accentColor: t.accent, onSurface: t.onSurface)
+                  : LineChartPainter(series: series, accentColor: t.accent, onSurface: t.onSurface),
             ),
-          // X-axis labels
-          if (series.isNotEmpty) ...[
-            SizedBox(height: t.baseSpacing / 2),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: series
-                  .map((dp) => Flexible(
-                        child: Text(
-                          dp.label,
-                          style: TextStyle(
-                            color: t.onSurface.withAlpha(100),
-                            fontSize: 10 * t.fontScale,
-                          ),
-                          overflow: TextOverflow.ellipsis,
-                          textAlign: TextAlign.center,
-                        ),
-                      ))
-                  .toList(),
-            ),
-          ],
+          ),
+          // X-Axis Labels Row
+          const SizedBox(height: 8),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: series.map((pt) {
+              return Expanded(
+                child: Text(
+                  pt.label,
+                  style: TextStyle(
+                    color: t.onSurface.withAlpha(100),
+                    fontSize: 9 * t.fontScale,
+                  ),
+                  textAlign: TextAlign.center,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              );
+            }).toList(),
+          ),
         ],
       ),
     );
   }
 }
 
-class _DataPoint {
-  final String label;
-  final double value;
-  const _DataPoint({required this.label, required this.value});
-}
+class LineChartPainter extends CustomPainter {
+  final List<ChartDataPoint> series;
+  final Color accentColor;
+  final Color onSurface;
 
-/// Custom painter for bar charts.
-class _BarChartPainter extends CustomPainter {
-  final List<_DataPoint> series;
-  final ThemeTokens theme;
-  final String unit;
-
-  _BarChartPainter({
+  LineChartPainter({
     required this.series,
-    required this.theme,
-    required this.unit,
+    required this.accentColor,
+    required this.onSurface,
   });
 
   @override
   void paint(Canvas canvas, Size size) {
-    if (series.isEmpty) return;
+    final values = series.map((pt) => pt.value).toList();
+    double maxValue = values.reduce(max);
+    double minValue = values.reduce(min);
+    
+    // Add margin to scale range
+    if (maxValue == minValue) {
+      maxValue += 1.0;
+      minValue -= 1.0;
+    } else {
+      final range = maxValue - minValue;
+      maxValue += range * 0.15;
+      minValue = max(0, minValue - range * 0.15);
+    }
+    final range = maxValue - minValue;
 
-    final maxVal = series.map((s) => s.value).reduce(math.max);
-    final normalizedMax = maxVal == 0 ? 1.0 : maxVal;
-    final barWidth = (size.width / series.length) * 0.6;
-    final gap = (size.width / series.length) * 0.4;
+    // Draw Grid Lines (horizontal)
+    final gridPaint = Paint()
+      ..color = onSurface.withAlpha(15)
+      ..strokeWidth = 1.0;
 
-    final paint = Paint()
-      ..color = theme.accent
-      ..style = PaintingStyle.fill;
+    final numGridLines = 3;
+    for (int i = 0; i <= numGridLines; i++) {
+      final y = size.height * i / numGridLines;
+      canvas.drawLine(Offset(0, y), Offset(size.width, y), gridPaint);
+    }
 
-    final bgPaint = Paint()
-      ..color = theme.onSurface.withAlpha(15)
-      ..style = PaintingStyle.fill;
-
+    // Determine coordinates for points
+    final widthStep = size.width / (series.length > 1 ? series.length - 1 : 1);
+    final List<Offset> points = [];
     for (int i = 0; i < series.length; i++) {
-      final x = i * (barWidth + gap) + gap / 2;
-      final barHeight = (series[i].value / normalizedMax) * (size.height - 20);
+      final x = i * widthStep;
+      final ratio = (series[i].value - minValue) / range;
+      final y = size.height - (ratio * size.height);
+      points.add(Offset(x, y));
+    }
 
-      // Background bar
-      canvas.drawRRect(
-        RRect.fromRectAndRadius(
-          Rect.fromLTWH(x, 0, barWidth, size.height - 20),
-          const Radius.circular(6),
-        ),
-        bgPaint,
-      );
+    if (points.isEmpty) return;
 
-      // Value bar
-      canvas.drawRRect(
-        RRect.fromRectAndRadius(
-          Rect.fromLTWH(
-              x, size.height - 20 - barHeight, barWidth, barHeight),
-          const Radius.circular(6),
-        ),
-        paint,
+    // 1. Draw Neon Under-Fill Gradient Area
+    final fillPath = Path()..moveTo(points.first.dx, size.height);
+    for (final pt in points) {
+      fillPath.lineTo(pt.dx, pt.dy);
+    }
+    fillPath.lineTo(points.last.dx, size.height);
+    fillPath.close();
+
+    final fillPaint = Paint()
+      ..shader = LinearGradient(
+        begin: Alignment.topCenter,
+        end: Alignment.bottomCenter,
+        colors: [
+          accentColor.withAlpha(45),
+          accentColor.withAlpha(0),
+        ],
+      ).createShader(Rect.fromLTRB(0, 0, size.width, size.height))
+      ..style = PaintingStyle.fill;
+    
+    canvas.drawPath(fillPath, fillPaint);
+
+    // 2. Draw Smooth Bezier Neon Line
+    final linePaint = Paint()
+      ..color = accentColor
+      ..strokeWidth = 2.5
+      ..style = PaintingStyle.stroke
+      ..strokeCap = StrokeCap.round
+      ..strokeJoin = StrokeJoin.round;
+
+    final linePath = Path()..moveTo(points.first.dx, points.first.dy);
+    for (int i = 0; i < points.length - 1; i++) {
+      final p1 = points[i];
+      final p2 = points[i + 1];
+      final controlPoint1 = Offset(p1.dx + (p2.dx - p1.dx) / 2.0, p1.dy);
+      final controlPoint2 = Offset(p1.dx + (p2.dx - p1.dx) / 2.0, p2.dy);
+      linePath.cubicTo(
+        controlPoint1.dx, controlPoint1.dy,
+        controlPoint2.dx, controlPoint2.dy,
+        p2.dx, p2.dy,
       );
+    }
+    
+    // Draw glowing aura/shadow
+    final glowPaint = Paint()
+      ..color = accentColor.withAlpha(80)
+      ..strokeWidth = 6.0
+      ..style = PaintingStyle.stroke
+      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 3);
+    
+    canvas.drawPath(linePath, glowPaint);
+    canvas.drawPath(linePath, linePaint);
+
+    // 3. Draw Data Points (circles)
+    final dotPaint = Paint()
+      ..color = accentColor
+      ..style = PaintingStyle.fill;
+    final dotOuterPaint = Paint()
+      ..color = onSurface
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2.0;
+
+    for (final pt in points) {
+      canvas.drawCircle(pt, 5.0, dotPaint);
+      canvas.drawCircle(pt, 5.0, dotOuterPaint);
     }
   }
 
@@ -207,84 +293,76 @@ class _BarChartPainter extends CustomPainter {
   bool shouldRepaint(covariant CustomPainter oldDelegate) => true;
 }
 
-/// Custom painter for line charts.
-class _LineChartPainter extends CustomPainter {
-  final List<_DataPoint> series;
-  final ThemeTokens theme;
-  final String unit;
+class BarChartPainter extends CustomPainter {
+  final List<ChartDataPoint> series;
+  final Color accentColor;
+  final Color onSurface;
 
-  _LineChartPainter({
+  BarChartPainter({
     required this.series,
-    required this.theme,
-    required this.unit,
+    required this.accentColor,
+    required this.onSurface,
   });
 
   @override
   void paint(Canvas canvas, Size size) {
-    if (series.length < 2) return;
+    final values = series.map((pt) => pt.value).toList();
+    double maxValue = values.reduce(max);
+    if (maxValue <= 0) maxValue = 1.0;
+    
+    // Grid
+    final gridPaint = Paint()
+      ..color = onSurface.withAlpha(15)
+      ..strokeWidth = 1.0;
 
-    final maxVal = series.map((s) => s.value).reduce(math.max);
-    final minVal = series.map((s) => s.value).reduce(math.min);
-    final range = maxVal - minVal;
-    final normalizedRange = range == 0 ? 1.0 : range;
-    final chartHeight = size.height - 20;
-
-    final linePaint = Paint()
-      ..color = theme.accent
-      ..strokeWidth = 2.5
-      ..style = PaintingStyle.stroke
-      ..strokeCap = StrokeCap.round;
-
-    final dotPaint = Paint()
-      ..color = theme.accent
-      ..style = PaintingStyle.fill;
-
-    final fillPaint = Paint()
-      ..shader = LinearGradient(
-        begin: Alignment.topCenter,
-        end: Alignment.bottomCenter,
-        colors: [
-          theme.accent.withAlpha(60),
-          theme.accent.withAlpha(5),
-        ],
-      ).createShader(Rect.fromLTWH(0, 0, size.width, chartHeight));
-
-    final path = Path();
-    final fillPath = Path();
-    final stepX = size.width / (series.length - 1);
-
-    for (int i = 0; i < series.length; i++) {
-      final x = i * stepX;
-      final y = chartHeight -
-          ((series[i].value - minVal) / normalizedRange) * chartHeight;
-
-      if (i == 0) {
-        path.moveTo(x, y);
-        fillPath.moveTo(x, chartHeight);
-        fillPath.lineTo(x, y);
-      } else {
-        path.lineTo(x, y);
-        fillPath.lineTo(x, y);
-      }
+    final numGridLines = 3;
+    for (int i = 0; i <= numGridLines; i++) {
+      final y = size.height * i / numGridLines;
+      canvas.drawLine(Offset(0, y), Offset(size.width, y), gridPaint);
     }
 
-    fillPath.lineTo(size.width, chartHeight);
-    fillPath.close();
+    final barCount = series.length;
+    final spacingRatio = 0.35;
+    final totalSpacingRatio = spacingRatio * (barCount + 1);
+    final totalBarWidthRatio = 1.0 - totalSpacingRatio;
+    final singleBarWidth = (size.width * totalBarWidthRatio) / barCount;
+    final spacingWidth = (size.width * spacingRatio);
 
-    canvas.drawPath(fillPath, fillPaint);
-    canvas.drawPath(path, linePaint);
+    for (int i = 0; i < barCount; i++) {
+      final pt = series[i];
+      final ratio = pt.value / maxValue;
+      final barHeight = ratio * size.height;
+      
+      final left = (i * (singleBarWidth + spacingWidth / barCount)) + (spacingWidth / (barCount + 1));
+      final top = size.height - barHeight;
+      final right = left + singleBarWidth;
+      final bottom = size.height;
 
-    // Draw dots
-    for (int i = 0; i < series.length; i++) {
-      final x = i * stepX;
-      final y = chartHeight -
-          ((series[i].value - minVal) / normalizedRange) * chartHeight;
-      canvas.drawCircle(Offset(x, y), 4, dotPaint);
-      canvas.drawCircle(
-        Offset(x, y),
-        2,
-        Paint()..color = theme.surface,
+      final barColor = pt.color ?? accentColor;
+
+      final rect = Rect.fromLTRB(left, top, right, bottom);
+      final rrect = RRect.fromRectAndRadius(rect, const Radius.circular(5));
+
+      final fillPaint = Paint()
+        ..shader = LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [
+            barColor,
+            barColor.withAlpha(100),
+          ],
+        ).createShader(rect)
+        ..style = PaintingStyle.fill;
+
+      canvas.drawRRect(
+        rrect,
+        Paint()
+          ..color = barColor.withAlpha(60)
+          ..style = PaintingStyle.fill
+          ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 4),
       );
+
+      canvas.drawRRect(rrect, fillPaint);
     }
   }
 
