@@ -165,7 +165,7 @@ jobs:
       - name: Build Android APK
         run: |
           cd apps/client_flutter
-          flutter build apk --release
+          flutter build apk --release --no-tree-shake-icons
 
       - name: Upload Android Artifacts
         uses: actions/upload-artifact@v4
