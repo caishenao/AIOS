@@ -1,7 +1,12 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:uuid/uuid.dart';
 import '../config/capability_registry.dart';
+import '../config/chat_history.dart';
+import '../agent/chat_provider.dart';
+import '../genui/surface/ui_node.dart';
 import '../platform/device_form_factor.dart';
 import '../agent/discovery_service.dart';
 import '../agent/bridge_service.dart';
@@ -22,6 +27,17 @@ class ConfigPage extends ConsumerWidget {
     final ttsConfig = ref.watch(ttsConfigProvider);
     final isScanning = ref.watch(discoveryServiceProvider).isScanning;
     final theme = Theme.of(context);
+    
+    final history = ref.watch(chatHistoryProvider);
+    final searchQuery = ref.watch(chatHistorySearchQueryProvider);
+    final filteredHistory = history.where((e) {
+      if (searchQuery.isEmpty) return true;
+      final q = searchQuery.toLowerCase();
+      final userMatch = e.userMessage.toLowerCase().contains(q);
+      final replyMatch = e.textReply?.toLowerCase().contains(q) ?? false;
+      final uiMatch = e.uiTree?.toString().toLowerCase().contains(q) ?? false;
+      return userMatch || replyMatch || uiMatch;
+    }).toList();
 
     final cyberPrimary = const Color(0xFF00F0FF);
     final cyberSecondary = const Color(0xFF8A2BE2);
@@ -412,6 +428,136 @@ class ConfigPage extends ConsumerWidget {
               ),
             ),
           ),
+          const SizedBox(height: 32),
+
+          // Section 8: Dialogue History
+          _buildSectionHeader(
+            '历史对话记录', 
+            cyberAccent, 
+            context,
+            trailing: history.isEmpty ? null : TextButton.icon(
+              icon: const Icon(Icons.delete_sweep_outlined, color: Colors.redAccent, size: 18),
+              label: const Text('清空历史', style: TextStyle(color: Colors.redAccent, fontSize: 12)),
+              onPressed: () => _showClearHistoryConfirmDialog(context, ref),
+            ),
+          ),
+          
+          // Search Bar
+          Card(
+            color: cardBg,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+              side: BorderSide(color: cyberPrimary.withAlpha(20)),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 2),
+              child: TextField(
+                style: const TextStyle(color: Colors.white, fontSize: 13),
+                decoration: InputDecoration(
+                  icon: const Icon(Icons.search, color: Colors.white54, size: 20),
+                  hintText: '搜索历史对话记录...',
+                  hintStyle: const TextStyle(color: Colors.white38, fontSize: 13),
+                  border: InputBorder.none,
+                  suffixIcon: searchQuery.isNotEmpty
+                      ? IconButton(
+                          icon: const Icon(Icons.clear, color: Colors.white54, size: 18),
+                          onPressed: () => ref.read(chatHistorySearchQueryProvider.notifier).state = '',
+                        )
+                      : null,
+                ),
+                onChanged: (val) {
+                  ref.read(chatHistorySearchQueryProvider.notifier).state = val;
+                },
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
+          
+          if (filteredHistory.isEmpty)
+            _buildEmptyState(
+              searchQuery.isNotEmpty ? '未找到符合搜索条件的历史记录。' : '暂无对话历史记录。',
+              cyberAccent,
+            )
+          else
+            ListView.builder(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              itemCount: filteredHistory.length,
+              itemBuilder: (context, index) {
+                final entry = filteredHistory[index];
+                return Dismissible(
+                  key: ValueKey(entry.id),
+                  direction: DismissDirection.endToStart,
+                  background: Container(
+                    decoration: BoxDecoration(
+                      color: Colors.redAccent.withAlpha(180),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    alignment: Alignment.centerRight,
+                    padding: const EdgeInsets.only(right: 20),
+                    child: const Icon(Icons.delete_sweep, color: Colors.white),
+                  ),
+                  onDismissed: (_) {
+                    ref.read(chatHistoryProvider.notifier).deleteEntry(entry.id);
+                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('已删除该条对话记录')));
+                  },
+                  child: Card(
+                    color: cardBg,
+                    margin: const EdgeInsets.only(bottom: 10),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      side: BorderSide(color: cyberPrimary.withAlpha(15)),
+                    ),
+                    child: ListTile(
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      title: Text(
+                        entry.userMessage,
+                        style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white, fontSize: 14),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      subtitle: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const SizedBox(height: 4),
+                          Text(
+                            entry.textReply != null
+                                ? entry.textReply!
+                                : (entry.uiTree != null ? '[UI 界面: ${entry.uiTree!['component'] ?? '组件'}]' : '（无回复内容）'),
+                            style: TextStyle(fontSize: 12, color: Colors.white.withAlpha(130)),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          const SizedBox(height: 6),
+                          Text(
+                            _formatDateTime(entry.timestamp),
+                            style: TextStyle(fontSize: 10, color: Colors.white.withAlpha(90)),
+                          ),
+                        ],
+                      ),
+                      trailing: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          IconButton(
+                            icon: Icon(Icons.zoom_in, color: cyberPrimary, size: 20),
+                            onPressed: () => _showHistoryDetailDialog(context, ref, entry),
+                          ),
+                          IconButton(
+                            icon: const Icon(Icons.delete_outline, color: Colors.redAccent, size: 20),
+                            onPressed: () {
+                              ref.read(chatHistoryProvider.notifier).deleteEntry(entry.id);
+                              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('已删除该条对话记录')));
+                            },
+                          ),
+                        ],
+                      ),
+                      onTap: () => _showHistoryDetailDialog(context, ref, entry),
+                    ),
+                  ),
+                );
+              },
+            ),
+
           const SizedBox(height: 40),
         ],
       ),
@@ -750,6 +896,181 @@ class ConfigPage extends ConsumerWidget {
           ),
         ],
       ),
+    );
+  }
+
+  String _formatDateTime(DateTime dt) {
+    return "${dt.year}-${dt.month.toString().padLeft(2, '0')}-${dt.day.toString().padLeft(2, '0')} ${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}";
+  }
+
+  void _showClearHistoryConfirmDialog(BuildContext context, WidgetRef ref) {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          backgroundColor: const Color(0xFF0E0E18),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+            side: const BorderSide(color: Colors.redAccent, width: 0.5),
+          ),
+          title: const Text('清空历史对话', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+          content: const Text(
+            '确定要清空所有的历史对话记录吗？此操作不可逆。',
+            style: TextStyle(color: Colors.white70),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text('取消', style: TextStyle(color: Colors.white.withAlpha(150))),
+            ),
+            FilledButton(
+              style: FilledButton.styleFrom(backgroundColor: Colors.redAccent),
+              onPressed: () {
+                ref.read(chatHistoryProvider.notifier).clearHistory();
+                Navigator.pop(context);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('历史对话记录已清空')),
+                );
+              },
+              child: const Text('清空'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  List<String> _extractComponents(Map<String, dynamic> node) {
+    final list = <String>[];
+    final comp = node['component'] as String?;
+    if (comp != null) list.add(comp);
+    final children = node['children'];
+    if (children is List) {
+      for (final child in children) {
+        if (child is Map<String, dynamic>) {
+          list.addAll(_extractComponents(child));
+        }
+      }
+    }
+    return list;
+  }
+
+  void _showHistoryDetailDialog(BuildContext context, WidgetRef ref, ChatHistoryEntry entry) {
+    final cyberPrimary = const Color(0xFF00F0FF);
+    final componentsList = entry.uiTree != null ? _extractComponents(entry.uiTree!) : <String>[];
+
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          backgroundColor: const Color(0xFF0E0E18),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+            side: BorderSide(color: cyberPrimary.withAlpha(40), width: 0.5),
+          ),
+          title: Row(
+            children: [
+              Icon(Icons.history_toggle_off, color: cyberPrimary),
+              const SizedBox(width: 10),
+              const Text('对话详情记录', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
+            ],
+          ),
+          content: SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text('用户指令', style: TextStyle(color: Colors.white70, fontSize: 11, fontWeight: FontWeight.bold)),
+                const SizedBox(height: 6),
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withAlpha(10),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Text(
+                    entry.userMessage,
+                    style: const TextStyle(color: Colors.white, fontSize: 14),
+                  ),
+                ),
+                const SizedBox(height: 20),
+                const Text('助手回复', style: TextStyle(color: Colors.white70, fontSize: 11, fontWeight: FontWeight.bold)),
+                const SizedBox(height: 6),
+                if (entry.textReply != null)
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withAlpha(10),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Text(
+                      entry.textReply!,
+                      style: const TextStyle(color: Colors.white70, fontSize: 14, height: 1.4),
+                    ),
+                  )
+                else
+                  Text(
+                    componentsList.isNotEmpty
+                        ? '界面输出: ${componentsList.join(" ➔ ")}'
+                        : '（无文字回复）',
+                    style: const TextStyle(color: Colors.white38, fontSize: 13),
+                  ),
+                if (entry.uiTree != null) ...[
+                  const SizedBox(height: 20),
+                  const Text('卡片数据细节', style: TextStyle(color: Colors.white70, fontSize: 11, fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 6),
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.black.withAlpha(80),
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: Colors.white.withAlpha(10)),
+                    ),
+                    child: SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      child: Text(
+                        const JsonEncoder.withIndent('  ').convert(entry.uiTree),
+                        style: const TextStyle(color: Colors.greenAccent, fontSize: 11, fontFamily: 'monospace'),
+                      ),
+                    ),
+                  ),
+                ],
+                const SizedBox(height: 12),
+                Text(
+                  '时间: ${_formatDateTime(entry.timestamp)}',
+                  style: TextStyle(color: Colors.white.withAlpha(100), fontSize: 11),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text('关闭', style: TextStyle(color: Colors.white.withAlpha(150))),
+            ),
+            if (entry.uiTree != null || entry.textReply != null)
+              ElevatedButton.icon(
+                icon: const Icon(Icons.restore_page_outlined, size: 18),
+                label: const Text('应用并返回主页'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: cyberPrimary,
+                  foregroundColor: Colors.black,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                ),
+                onPressed: () {
+                  ref.read(latestUiTreeProvider.notifier).state =
+                      entry.uiTree != null ? UiNode.fromJson(entry.uiTree!) : null;
+                  ref.read(latestTextReplyProvider.notifier).state = entry.textReply;
+                  Navigator.pop(context);
+                  context.go('/');
+                },
+              ),
+          ],
+        );
+      },
     );
   }
 

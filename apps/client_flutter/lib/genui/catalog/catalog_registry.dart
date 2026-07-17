@@ -10,6 +10,7 @@ import 'components/list_view_component.dart';
 import 'components/media_player.dart';
 import 'components/email_dashboard.dart';
 import 'components/map_navigation.dart';
+import 'components/product_card.dart';
 import 'components/stubs.dart';
 
 typedef EventCallback = void Function(String action, Map<String, dynamic> payload);
@@ -90,6 +91,7 @@ class CatalogRegistry {
     CatalogMediaPlayer.register(this);
     EmailDashboardComponent.register(this);
     MapNavigationComponent.register(this);
+    ProductCardComponent.register(this);
     
     // Stubs
     WeatherCardComponent.register(this);

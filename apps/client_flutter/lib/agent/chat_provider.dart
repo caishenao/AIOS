@@ -5,6 +5,7 @@ import 'a2ui_connection.dart';
 import 'a2ui_messages.dart';
 import '../genui/surface/ui_node.dart';
 import '../config/capability_registry.dart';
+import '../config/chat_history.dart';
 import 'local_agent_service.dart';
 
 final useLocalAgentProvider = StateProvider<bool>((ref) => true);
@@ -55,6 +56,12 @@ class ChatNotifier extends StateNotifier<String?> {
         ref.read(latestUiTreeProvider.notifier).state = response.uiTree;
         ref.read(latestTextReplyProvider.notifier).state = response.textReply;
         
+        ref.read(chatHistoryProvider.notifier).addEntry(
+          text,
+          textReply: response.textReply,
+          uiTree: response.uiTree?.toJson(),
+        );
+
         state = 'local_session';
         return 'local_session';
       } else {
@@ -88,6 +95,12 @@ class ChatNotifier extends StateNotifier<String?> {
           // Store text reply
           final textReply = data['text_reply'] as String?;
           ref.read(latestTextReplyProvider.notifier).state = textReply;
+
+          ref.read(chatHistoryProvider.notifier).addEntry(
+            text,
+            textReply: textReply,
+            uiTree: uiTreeJson as Map<String, dynamic>?,
+          );
 
           return sessionId;
         } else {

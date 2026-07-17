@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:math';
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../catalog_registry.dart';
 import '../theme_tokens.dart';
 
@@ -117,6 +118,32 @@ class _MapNavigationComponentState extends State<MapNavigationComponent> with Si
         }
       });
     });
+  }
+
+  Future<void> _launchExternalMap() async {
+    final destination = Uri.encodeComponent(widget.endLocation);
+    // High coverage routing url scheme/web urls
+    final amapUrl = 'https://uri.amap.com/navigation?to=$destination&mode=car';
+    final googleUrl = 'https://www.google.com/maps/dir/?api=1&destination=$destination';
+
+    final Uri url = Uri.parse(amapUrl);
+    final Uri fallbackUrl = Uri.parse(googleUrl);
+    
+    try {
+      if (await canLaunchUrl(url)) {
+        await launchUrl(url, mode: LaunchMode.externalApplication);
+      } else if (await canLaunchUrl(fallbackUrl)) {
+        await launchUrl(fallbackUrl, mode: LaunchMode.externalApplication);
+      } else {
+        throw Exception('无法解析导航跳转链接');
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('无法唤起外部导航软件: $e')),
+        );
+      }
+    }
   }
 
   @override
@@ -366,64 +393,95 @@ class _MapNavigationComponentState extends State<MapNavigationComponent> with Si
                 const Divider(height: 24),
 
                 // Control panel
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    TextButton.icon(
-                      icon: Icon(_isNavigating ? Icons.pause : Icons.play_arrow, color: t.accent),
-                      label: Text(
-                        _isNavigating ? '暂停' : '继续',
-                        style: TextStyle(color: t.accent),
-                      ),
-                      onPressed: () {
-                        setState(() {
-                          _isNavigating = !_isNavigating;
-                          if (_isNavigating) {
-                            _startSimulation();
-                          } else {
-                            _progressController.stop();
-                            _simulationTimer?.cancel();
-                          }
-                        });
-                      },
-                    ),
                     Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        IconButton(
-                          icon: const Icon(Icons.remove_circle_outline),
-                          tooltip: '减速',
+                        TextButton.icon(
+                          icon: Icon(_isNavigating ? Icons.pause : Icons.play_arrow, color: t.accent),
+                          label: Text(
+                            _isNavigating ? '暂停' : '继续',
+                            style: TextStyle(color: t.accent),
+                          ),
                           onPressed: () {
                             setState(() {
-                              _simulatedSpeed = max(20.0, _simulatedSpeed - 15.0);
+                              _isNavigating = !_isNavigating;
+                              if (_isNavigating) {
+                                _startSimulation();
+                              } else {
+                                _progressController.stop();
+                                _simulationTimer?.cancel();
+                              }
                             });
                           },
                         ),
-                        IconButton(
-                          icon: const Icon(Icons.add_circle_outline),
-                          tooltip: '加速',
+                        ElevatedButton.icon(
+                          icon: const Icon(Icons.open_in_new, size: 14),
+                          label: const Text('外部导航', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: t.accent.withAlpha(30),
+                            foregroundColor: t.accent,
+                            elevation: 0,
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                          ),
+                          onPressed: _launchExternalMap,
+                        ),
+                        TextButton(
+                          style: TextButton.styleFrom(foregroundColor: Colors.redAccent),
                           onPressed: () {
+                            final action = widget.events?['onCancelNavigation'] ?? 'navigation.cancel';
+                            widget.onEvent?.call(action, {});
+                            _progressController.stop();
+                            _simulationTimer?.cancel();
                             setState(() {
-                              _simulatedSpeed = min(150.0, _simulatedSpeed + 15.0);
+                              _isNavigating = false;
                             });
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('导航已取消')),
+                            );
                           },
+                          child: const Text('取消'),
                         ),
                       ],
                     ),
-                    TextButton(
-                      style: TextButton.styleFrom(foregroundColor: Colors.redAccent),
-                      onPressed: () {
-                        final action = widget.events?['onCancelNavigation'] ?? 'navigation.cancel';
-                        widget.onEvent?.call(action, {});
-                        _progressController.stop();
-                        _simulationTimer?.cancel();
-                        setState(() {
-                          _isNavigating = false;
-                        });
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('导航已取消')),
-                        );
-                      },
-                      child: const Text('取消'),
+                    const SizedBox(height: 8),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          '模拟驾驶控制',
+                          style: TextStyle(color: t.onSurface.withAlpha(100), fontSize: 11),
+                        ),
+                        Row(
+                          children: [
+                            IconButton(
+                              icon: const Icon(Icons.remove_circle_outline, size: 18),
+                              tooltip: '减速',
+                              onPressed: () {
+                                setState(() {
+                                  _simulatedSpeed = max(20.0, _simulatedSpeed - 15.0);
+                                });
+                              },
+                            ),
+                            Text(
+                              '${_simulatedSpeed.round()} KM/H',
+                              style: TextStyle(color: t.accent, fontSize: 11, fontWeight: FontWeight.bold, fontFamily: 'monospace'),
+                            ),
+                            IconButton(
+                              icon: const Icon(Icons.add_circle_outline, size: 18),
+                              tooltip: '加速',
+                              onPressed: () {
+                                setState(() {
+                                  _simulatedSpeed = min(150.0, _simulatedSpeed + 15.0);
+                                });
+                              },
+                            ),
+                          ],
+                        ),
+                      ],
                     ),
                   ],
                 ),
