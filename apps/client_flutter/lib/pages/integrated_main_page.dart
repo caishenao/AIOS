@@ -20,7 +20,8 @@ import '../config/tts_config.dart';
 import '../voice/voice_waveform.dart';
 
 class IntegratedMainPage extends ConsumerStatefulWidget {
-  const IntegratedMainPage({super.key});
+  final String? initialCommand;
+  const IntegratedMainPage({super.key, this.initialCommand});
 
   @override
   ConsumerState<IntegratedMainPage> createState() => _IntegratedMainPageState();
@@ -90,6 +91,14 @@ class _IntegratedMainPageState extends ConsumerState<IntegratedMainPage> with Ti
         }
       });
     }
+
+    // Handle initial command passed from home page
+    if (widget.initialCommand != null && widget.initialCommand!.trim().isNotEmpty) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _textController.text = widget.initialCommand!;
+        _submit();
+      });
+    }
   }
 
   @override
@@ -146,22 +155,23 @@ class _IntegratedMainPageState extends ConsumerState<IntegratedMainPage> with Ti
     showDialog(
       context: context,
       builder: (context) {
+        final cs = Theme.of(context).colorScheme;
         return StatefulBuilder(
           builder: (context, setDialogState) {
             return AlertDialog(
-              backgroundColor: const Color(0xFF0E0E18),
+              backgroundColor: cs.surface,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(20),
-                side: const BorderSide(color: Color(0xFF00F0FF), width: 0.5),
+                side: BorderSide(color: cs.primary, width: 0.5),
               ),
               title: Row(
                 children: [
-                  const Icon(Icons.send_outlined, color: Color(0xFF00F0FF)),
+                  Icon(Icons.send_outlined, color: cs.primary),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
                       '调度任务给 ${agent.name}',
-                      style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+                      style: TextStyle(color: cs.onSurface, fontSize: 16, fontWeight: FontWeight.bold),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -169,10 +179,10 @@ class _IntegratedMainPageState extends ConsumerState<IntegratedMainPage> with Ti
                 ],
               ),
               content: dialogLoading
-                  ? const SizedBox(
+                  ? SizedBox(
                       height: 100,
                       child: Center(
-                        child: CircularProgressIndicator(color: Color(0xFF00F0FF)),
+                        child: CircularProgressIndicator(color: cs.primary),
                       ),
                     )
                   : Column(
@@ -181,17 +191,17 @@ class _IntegratedMainPageState extends ConsumerState<IntegratedMainPage> with Ti
                       children: [
                         Text(
                           '向该集群节点发送指令或提示词。它将执行任务并返回生成的界面/回复。',
-                          style: TextStyle(color: Colors.white.withAlpha(160), fontSize: 13),
+                          style: TextStyle(color: cs.onSurfaceVariant, fontSize: 13),
                         ),
                         const SizedBox(height: 16),
                         TextField(
                           controller: taskController,
-                          style: const TextStyle(color: Colors.white),
+                          style: TextStyle(color: cs.onSurface),
                           decoration: InputDecoration(
                             hintText: '输入任务指令...',
-                            hintStyle: const TextStyle(color: Colors.white54),
+                            hintStyle: TextStyle(color: cs.onSurfaceVariant),
                             filled: true,
-                            fillColor: Colors.white.withAlpha(10),
+                            fillColor: cs.surfaceContainerHighest,
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
                               borderSide: BorderSide.none,
@@ -207,12 +217,12 @@ class _IntegratedMainPageState extends ConsumerState<IntegratedMainPage> with Ti
                   : [
                       TextButton(
                         onPressed: () => Navigator.pop(context),
-                        child: Text('取消', style: TextStyle(color: Colors.white.withAlpha(150))),
+                        child: Text('取消', style: TextStyle(color: cs.onSurfaceVariant)),
                       ),
                       ElevatedButton(
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF00F0FF),
-                          foregroundColor: const Color(0xFF090A10),
+                          backgroundColor: cs.primary,
+                          foregroundColor: Colors.white,
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                         ),
                         onPressed: () async {
@@ -265,28 +275,29 @@ class _IntegratedMainPageState extends ConsumerState<IntegratedMainPage> with Ti
   }
 
   Widget _buildEmptyNodesState() {
+    final cs = Theme.of(context).colorScheme;
     return Padding(
       padding: const EdgeInsets.all(24.0),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.radar_outlined, size: 48, color: const Color(0xFF00F0FF).withAlpha(50)),
+          Icon(Icons.radar_outlined, size: 48, color: cs.primary.withAlpha(50)),
           const SizedBox(height: 16),
-          const Text(
+          Text(
             '正在搜索集群节点',
-            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14),
+            style: TextStyle(color: cs.onSurface, fontWeight: FontWeight.bold, fontSize: 14),
           ),
           const SizedBox(height: 6),
           Text(
             '正在扫描本地网络以发现其他活跃的 AIOS 设备...',
             textAlign: TextAlign.center,
-            style: TextStyle(color: Colors.white.withAlpha(100), fontSize: 12),
+            style: TextStyle(color: cs.onSurfaceVariant.withAlpha(120), fontSize: 12),
           ),
           const SizedBox(height: 24),
-          const SizedBox(
+          SizedBox(
             width: 20,
             height: 20,
-            child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFF00F0FF)),
+            child: CircularProgressIndicator(strokeWidth: 2, color: cs.primary),
           ),
         ],
       ),
@@ -294,18 +305,19 @@ class _IntegratedMainPageState extends ConsumerState<IntegratedMainPage> with Ti
   }
 
   Widget _buildAgentTile(A2AAgentEntry agent) {
+    final cs = Theme.of(context).colorScheme;
     return Container(
       margin: const EdgeInsets.symmetric(vertical: 6.0),
       decoration: BoxDecoration(
-        color: Colors.white.withAlpha(8),
+        color: cs.onSurface.withAlpha(8),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.white.withAlpha(12)),
+        border: Border.all(color: cs.outline.withAlpha(30)),
       ),
       child: ListTile(
         contentPadding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
         title: Text(
           agent.name,
-          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14),
+          style: TextStyle(color: cs.onSurface, fontWeight: FontWeight.bold, fontSize: 14),
         ),
         subtitle: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -313,7 +325,7 @@ class _IntegratedMainPageState extends ConsumerState<IntegratedMainPage> with Ti
             const SizedBox(height: 4),
             Text(
               agent.endpoint,
-              style: TextStyle(color: Colors.white.withAlpha(120), fontSize: 11, fontFamily: 'monospace'),
+              style: TextStyle(color: cs.onSurfaceVariant, fontSize: 11, fontFamily: 'monospace'),
             ),
             const SizedBox(height: 4),
             Row(
@@ -331,12 +343,12 @@ class _IntegratedMainPageState extends ConsumerState<IntegratedMainPage> with Ti
         ),
         trailing: Container(
           decoration: BoxDecoration(
-            color: const Color(0xFF00F0FF).withAlpha(20),
+            color: cs.primary.withAlpha(20),
             borderRadius: BorderRadius.circular(8),
-            border: Border.all(color: const Color(0xFF00F0FF).withAlpha(50)),
+            border: Border.all(color: cs.primary.withAlpha(50)),
           ),
           child: IconButton(
-            icon: const Icon(Icons.send, color: Color(0xFF00F0FF), size: 18),
+            icon: Icon(Icons.send, color: cs.primary, size: 18),
             tooltip: '调度任务',
             onPressed: () => _showDispatchDialog(agent),
           ),
@@ -346,6 +358,7 @@ class _IntegratedMainPageState extends ConsumerState<IntegratedMainPage> with Ti
   }
 
   Widget _buildClusterDrawer() {
+    final cs = Theme.of(context).colorScheme;
     final a2aAgents = ref.watch(a2aAgentRegistryProvider);
     final isScanning = ref.watch(discoveryServiceProvider).isScanning;
 
@@ -356,8 +369,8 @@ class _IntegratedMainPageState extends ConsumerState<IntegratedMainPage> with Ti
         filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
         child: Container(
           decoration: BoxDecoration(
-            color: const Color(0xFF090A15).withAlpha(220),
-            border: const Border(right: BorderSide(color: Color(0xFF00F0FF), width: 0.5)),
+            color: Theme.of(context).scaffoldBackgroundColor.withAlpha(230),
+            border: Border(right: BorderSide(color: cs.primary, width: 0.5)),
           ),
           child: SafeArea(
             child: Column(
@@ -370,23 +383,23 @@ class _IntegratedMainPageState extends ConsumerState<IntegratedMainPage> with Ti
                     children: [
                       _RadarPulse(active: isScanning),
                       const SizedBox(width: 12),
-                      const Expanded(
+                      Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
                               'AIOS 智能集群',
                               style: TextStyle(
-                                color: Colors.white,
+                                color: cs.onSurface,
                                 fontWeight: FontWeight.bold,
                                 fontSize: 16,
                                 letterSpacing: 1.5,
                               ),
                             ),
-                            SizedBox(height: 2),
+                            const SizedBox(height: 2),
                             Text(
                               '去中心化智能体网格',
-                              style: TextStyle(color: Color(0xFF00F0FF), fontSize: 10),
+                              style: TextStyle(color: cs.primary, fontSize: 10),
                             ),
                           ],
                         ),
@@ -394,7 +407,7 @@ class _IntegratedMainPageState extends ConsumerState<IntegratedMainPage> with Ti
                     ],
                   ),
                 ),
-                const Divider(color: Colors.white10),
+                Divider(color: cs.outline),
 
                 // Cluster Nodes list title
                 Padding(
@@ -402,13 +415,13 @@ class _IntegratedMainPageState extends ConsumerState<IntegratedMainPage> with Ti
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Text(
+                      Text(
                         '已发现节点',
-                        style: TextStyle(color: Colors.white54, fontSize: 11, fontWeight: FontWeight.bold, letterSpacing: 1.0),
+                        style: TextStyle(color: cs.onSurfaceVariant, fontSize: 11, fontWeight: FontWeight.bold, letterSpacing: 1.0),
                       ),
                       Text(
                         '${a2aAgents.length} 个在线',
-                        style: const TextStyle(color: Color(0xFF00F0FF), fontSize: 11),
+                        style: TextStyle(color: cs.primary, fontSize: 11),
                       ),
                     ],
                   ),
@@ -429,7 +442,7 @@ class _IntegratedMainPageState extends ConsumerState<IntegratedMainPage> with Ti
                 ),
 
                 // Footer stats
-                const Divider(color: Colors.white10),
+                Divider(color: cs.outline),
                 Padding(
                   padding: const EdgeInsets.all(20.0),
                   child: Column(
@@ -437,12 +450,12 @@ class _IntegratedMainPageState extends ConsumerState<IntegratedMainPage> with Ti
                     children: [
                       Text(
                         '本地端点:',
-                        style: TextStyle(color: Colors.white.withAlpha(100), fontSize: 10),
+                        style: TextStyle(color: cs.onSurfaceVariant.withAlpha(120), fontSize: 10),
                       ),
                       const SizedBox(height: 4),
-                      const Text(
+                      Text(
                         'http://localhost (mDNS 广播中)',
-                        style: TextStyle(color: Colors.white70, fontSize: 11, fontFamily: 'monospace'),
+                        style: TextStyle(color: cs.onSurfaceVariant, fontSize: 11, fontFamily: 'monospace'),
                       ),
                     ],
                   ),
@@ -464,9 +477,12 @@ class _IntegratedMainPageState extends ConsumerState<IntegratedMainPage> with Ti
 
     final hasResult = uiTree != null || textReply != null;
 
+    final cs = Theme.of(context).colorScheme;
+    final scaffoldBg = Theme.of(context).scaffoldBackgroundColor;
+
     return Scaffold(
       key: _scaffoldKey,
-      backgroundColor: const Color(0xFF090A10),
+      backgroundColor: scaffoldBg,
       drawer: _buildClusterDrawer(),
       body: Stack(
         children: [
@@ -508,8 +524,8 @@ class _IntegratedMainPageState extends ConsumerState<IntegratedMainPage> with Ti
                           child: Text(
                             '"${_textController.text}"',
                             textAlign: TextAlign.center,
-                            style: const TextStyle(
-                              color: Colors.white, fontSize: 22,
+                            style: TextStyle(
+                              color: cs.onSurface, fontSize: 22,
                               fontWeight: FontWeight.bold, height: 1.4,
                             ),
                           ),
@@ -545,8 +561,8 @@ class _IntegratedMainPageState extends ConsumerState<IntegratedMainPage> with Ti
                   begin: Alignment.bottomCenter,
                   end: Alignment.topCenter,
                   colors: [
-                    const Color(0xFF090A10),
-                    const Color(0xFF090A10).withAlpha(240),
+                    scaffoldBg,
+                    scaffoldBg.withAlpha(240),
                     Colors.transparent,
                   ],
                 ),
@@ -568,6 +584,8 @@ class _IntegratedMainPageState extends ConsumerState<IntegratedMainPage> with Ti
     final hitlRequest = ref.watch(hitlProvider);
     if (hitlRequest == null) return const SizedBox.shrink();
 
+    final cs = Theme.of(context).colorScheme;
+
     return Positioned.fill(
       child: Stack(
         children: [
@@ -578,7 +596,7 @@ class _IntegratedMainPageState extends ConsumerState<IntegratedMainPage> with Ti
               child: BackdropFilter(
                 filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
                 child: Container(
-                  color: Colors.black.withOpacity(0.6),
+                  color: Colors.black.withAlpha(153),
                 ),
               ),
             ),
@@ -592,17 +610,17 @@ class _IntegratedMainPageState extends ConsumerState<IntegratedMainPage> with Ti
               padding: const EdgeInsets.all(28),
               constraints: const BoxConstraints(maxWidth: 500, maxHeight: 450),
               decoration: BoxDecoration(
-                color: const Color(0xFF161824).withOpacity(0.85),
+                color: cs.surface,
                 borderRadius: BorderRadius.circular(24),
-                border: Border.all(color: Colors.white.withOpacity(0.12)),
+                border: Border.all(color: cs.outline.withAlpha(40)),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.5),
+                    color: cs.shadow,
                     blurRadius: 30,
                     offset: const Offset(0, 15),
                   ),
                   BoxShadow(
-                    color: const Color(0xFF7C5CFF).withOpacity(0.15),
+                    color: cs.secondary.withAlpha(30),
                     blurRadius: 20,
                     offset: const Offset(0, 0),
                   ),
@@ -617,12 +635,12 @@ class _IntegratedMainPageState extends ConsumerState<IntegratedMainPage> with Ti
                       Container(
                         padding: const EdgeInsets.all(8),
                         decoration: BoxDecoration(
-                          color: const Color(0xFF7C5CFF).withOpacity(0.2),
+                          color: cs.secondary.withAlpha(40),
                           shape: BoxShape.circle,
                         ),
-                        child: const Icon(
+                        child: Icon(
                           Icons.security_outlined,
-                          color: Color(0xFF8B6CFF),
+                          color: cs.secondary,
                           size: 28,
                         ),
                       ),
@@ -630,8 +648,8 @@ class _IntegratedMainPageState extends ConsumerState<IntegratedMainPage> with Ti
                       Expanded(
                         child: Text(
                           hitlRequest.title,
-                          style: const TextStyle(
-                            color: Colors.white,
+                          style: TextStyle(
+                            color: cs.onSurface,
                             fontSize: 20,
                             fontWeight: FontWeight.bold,
                           ),
@@ -640,10 +658,10 @@ class _IntegratedMainPageState extends ConsumerState<IntegratedMainPage> with Ti
                     ],
                   ),
                   const SizedBox(height: 20),
-                  const Text(
+                  Text(
                     'Agent 请求执行以下操作。为了您的安全，请核对命令/脚本内容：',
                     style: TextStyle(
-                      color: Color(0xFFA0A5C0),
+                      color: cs.onSurfaceVariant,
                       fontSize: 14,
                       height: 1.4,
                     ),
@@ -653,16 +671,16 @@ class _IntegratedMainPageState extends ConsumerState<IntegratedMainPage> with Ti
                     child: Container(
                       padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(
-                        color: Colors.black.withOpacity(0.3),
+                        color: cs.surfaceContainerHighest,
                         borderRadius: BorderRadius.circular(16),
-                        border: Border.all(color: Colors.white.withOpacity(0.06)),
+                        border: Border.all(color: cs.outline.withAlpha(30)),
                       ),
                       child: SingleChildScrollView(
                         physics: const BouncingScrollPhysics(),
                         child: Text(
                           hitlRequest.details,
-                          style: const TextStyle(
-                            color: Color(0xFFE2E4F0),
+                          style: TextStyle(
+                            color: cs.onSurface,
                             fontFamily: 'Courier',
                             fontSize: 13,
                             height: 1.5,
@@ -677,8 +695,8 @@ class _IntegratedMainPageState extends ConsumerState<IntegratedMainPage> with Ti
                     children: [
                       OutlinedButton(
                         style: OutlinedButton.styleFrom(
-                          foregroundColor: const Color(0xFFA0A5C0),
-                          side: BorderSide(color: Colors.white.withOpacity(0.12)),
+                          foregroundColor: cs.onSurfaceVariant,
+                          side: BorderSide(color: cs.outline),
                           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(14),
@@ -692,11 +710,11 @@ class _IntegratedMainPageState extends ConsumerState<IntegratedMainPage> with Ti
                       const SizedBox(width: 16),
                       ElevatedButton(
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF7C5CFF),
+                          backgroundColor: cs.secondary,
                           foregroundColor: Colors.white,
                           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
                           elevation: 8,
-                          shadowColor: const Color(0xFF7C5CFF).withOpacity(0.4),
+                          shadowColor: cs.secondary.withAlpha(100),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(14),
                           ),
@@ -718,25 +736,49 @@ class _IntegratedMainPageState extends ConsumerState<IntegratedMainPage> with Ti
   }
 
   Widget _buildTopBar(bool hasResult, bool isListening, bool isLoading) {
+    final cs = Theme.of(context).colorScheme;
     return Padding(
       padding: const EdgeInsets.only(top: 50, left: 24, right: 24),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          Container(
-            decoration: BoxDecoration(
-              color: const Color(0xFF00F0FF).withAlpha(15),
-              shape: BoxShape.circle,
-              border: Border.all(color: const Color(0xFF00F0FF).withAlpha(50)),
-            ),
-            child: IconButton(
-              icon: const Icon(Icons.hub_outlined, color: Color(0xFF00F0FF)),
-              tooltip: '智能集群侧栏',
-              onPressed: () {
-                _scaffoldKey.currentState?.openDrawer();
-              },
-            ),
+          Row(
+            children: [
+              Container(
+                decoration: BoxDecoration(
+                  color: cs.primary.withAlpha(15),
+                  shape: BoxShape.circle,
+                  border: Border.all(color: cs.primary.withAlpha(50)),
+                ),
+                child: IconButton(
+                  icon: Icon(Icons.arrow_back, color: cs.onSurface),
+                  tooltip: '返回',
+                  onPressed: () {
+                    if (Navigator.of(context).canPop()) {
+                      Navigator.of(context).pop();
+                    } else {
+                      context.go('/');
+                    }
+                  },
+                ),
+              ),
+              const SizedBox(width: 8),
+              Container(
+                decoration: BoxDecoration(
+                  color: cs.primary.withAlpha(15),
+                  shape: BoxShape.circle,
+                  border: Border.all(color: cs.primary.withAlpha(50)),
+                ),
+                child: IconButton(
+                  icon: Icon(Icons.hub_outlined, color: cs.primary),
+                  tooltip: '智能集群侧栏',
+                  onPressed: () {
+                    _scaffoldKey.currentState?.openDrawer();
+                  },
+                ),
+              ),
+            ],
           ),
           Row(
             children: [
@@ -746,12 +788,12 @@ class _IntegratedMainPageState extends ConsumerState<IntegratedMainPage> with Ti
               ],
               Container(
                 decoration: BoxDecoration(
-                  color: Colors.white.withAlpha(15),
+                  color: cs.onSurface.withAlpha(15),
                   shape: BoxShape.circle,
-                  border: Border.all(color: Colors.white.withAlpha(20)),
+                  border: Border.all(color: cs.onSurface.withAlpha(20)),
                 ),
                 child: IconButton(
-                  icon: const Icon(Icons.settings_outlined, color: Colors.white70),
+                  icon: Icon(Icons.settings_outlined, color: cs.onSurfaceVariant),
                   tooltip: '设置',
                   onPressed: () => context.push('/config'),
                 ),
@@ -764,17 +806,18 @@ class _IntegratedMainPageState extends ConsumerState<IntegratedMainPage> with Ti
   }
 
   Widget _buildMiniGlowingSphere(bool isListening, bool isLoading) {
+    final cs = Theme.of(context).colorScheme;
     return AnimatedBuilder(
       animation: _pulseAnimation,
       builder: (context, child) {
-        Color color1 = const Color(0xFFE0F7FA);
-        Color color2 = const Color(0xFF4FC3F7);
+        Color color1 = cs.primary.withAlpha(60);
+        Color color2 = cs.primary;
         if (isLoading) {
           color1 = Colors.amber.shade100;
           color2 = Colors.amber;
         } else if (isListening) {
-          color1 = Colors.greenAccent.shade100;
-          color2 = Colors.greenAccent;
+          color1 = Colors.green.shade100;
+          color2 = Colors.green;
         }
         return Transform.scale(
           scale: _pulseAnimation.value,
@@ -807,6 +850,7 @@ class _IntegratedMainPageState extends ConsumerState<IntegratedMainPage> with Ti
    }
 
   Widget _buildGlowingSphere() {
+    final cs = Theme.of(context).colorScheme;
     return AnimatedBuilder(
       animation: _pulseAnimation,
       builder: (context, child) {
@@ -815,18 +859,18 @@ class _IntegratedMainPageState extends ConsumerState<IntegratedMainPage> with Ti
           child: Container(
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              gradient: const RadialGradient(
+              gradient: RadialGradient(
                 colors: [
-                  Color(0xFFE0F7FA),
-                  Color(0xFF4FC3F7),
-                  Color(0xFF0288D1),
+                  cs.primary.withAlpha(40),
+                  cs.primary.withAlpha(120),
+                  cs.primary,
                   Colors.transparent,
                 ],
-                stops: [0.1, 0.4, 0.8, 1.0],
+                stops: const [0.1, 0.4, 0.8, 1.0],
               ),
               boxShadow: [
                 BoxShadow(
-                  color: const Color(0xFF4FC3F7).withAlpha(100),
+                  color: cs.primary.withAlpha(100),
                   blurRadius: 80, spreadRadius: 20,
                 ),
               ],
@@ -838,6 +882,7 @@ class _IntegratedMainPageState extends ConsumerState<IntegratedMainPage> with Ti
   }
 
   Widget _buildStatusText(bool isListening, bool isLoading) {
+    final cs = Theme.of(context).colorScheme;
     String text;
     if (isLoading) {
       text = '思考中...';
@@ -847,24 +892,24 @@ class _IntegratedMainPageState extends ConsumerState<IntegratedMainPage> with Ti
       text = '准备就绪';
     }
     return Text(text,
-      style: const TextStyle(color: Colors.white54, fontSize: 16, fontWeight: FontWeight.w500),
+      style: TextStyle(color: cs.onSurfaceVariant, fontSize: 16, fontWeight: FontWeight.w500),
     );
   }
 
   Widget _buildActionPills() {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
+    return Wrap(
+      alignment: WrapAlignment.center,
+      spacing: 12,
+      runSpacing: 8,
       children: [
         _ActionPill(icon: Icons.calendar_month, label: '日程', onTap: () {
           _textController.text = '帮我看看今天的日程';
           _submit();
         }),
-        const SizedBox(width: 12),
         _ActionPill(icon: Icons.alarm, label: '提醒', onTap: () {
           _textController.text = '设置一个提醒';
           _submit();
         }),
-        const SizedBox(width: 12),
         _ActionPill(icon: Icons.assignment, label: '总结', onTap: () {
           _textController.text = '帮我总结一下今天';
           _submit();
@@ -874,6 +919,7 @@ class _IntegratedMainPageState extends ConsumerState<IntegratedMainPage> with Ti
   }
 
   Widget _buildResultCard(UiNode? uiTree, String? textReply) {
+    final cs = Theme.of(context).colorScheme;
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: ClipRRect(
@@ -884,9 +930,9 @@ class _IntegratedMainPageState extends ConsumerState<IntegratedMainPage> with Ti
             width: double.infinity,
             padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
-              color: Colors.white.withAlpha(12),
+              color: cs.surface.withAlpha(220),
               borderRadius: BorderRadius.circular(24),
-              border: Border.all(color: Colors.white.withAlpha(25)),
+              border: Border.all(color: cs.outline.withAlpha(50)),
             ),
             child: uiTree != null
                 ? GenUiSurface(
@@ -900,7 +946,7 @@ class _IntegratedMainPageState extends ConsumerState<IntegratedMainPage> with Ti
                   )
                 : Text(
                     textReply ?? '',
-                    style: const TextStyle(color: Colors.white, fontSize: 16, height: 1.6),
+                    style: TextStyle(color: cs.onSurface, fontSize: 16, height: 1.6),
                   ),
           ),
         ),
@@ -909,6 +955,7 @@ class _IntegratedMainPageState extends ConsumerState<IntegratedMainPage> with Ti
   }
 
   Widget _buildBottomControls(bool isListening, bool hasResult) {
+    final cs = Theme.of(context).colorScheme;
     if (hasResult) {
       return Row(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -938,14 +985,18 @@ class _IntegratedMainPageState extends ConsumerState<IntegratedMainPage> with Ti
             width: 72, height: 72,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: isListening
-                  ? const Color(0xFFE0F7FA)
-                  : const Color(0xFFE0F7FA).withAlpha(200),
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [cs.primary, cs.secondary],
+              ),
               boxShadow: isListening ? [
-                BoxShadow(color: const Color(0xFFE0F7FA).withAlpha(150), blurRadius: 40, spreadRadius: 10)
-              ] : [],
+                BoxShadow(color: cs.primary.withAlpha(150), blurRadius: 40, spreadRadius: 10)
+              ] : [
+                BoxShadow(color: cs.primary.withAlpha(60), blurRadius: 16, spreadRadius: 0)
+              ],
             ),
-            child: const Icon(Icons.mic, size: 32, color: Color(0xFF090A10)),
+            child: const Icon(Icons.mic, size: 32, color: Colors.white),
           ),
         ),
         _CircularIconButton(icon: Icons.close, onPressed: _reset),
@@ -954,12 +1005,13 @@ class _IntegratedMainPageState extends ConsumerState<IntegratedMainPage> with Ti
   }
 
   Widget _buildTextInput() {
+    final cs = Theme.of(context).colorScheme;
     return Row(
       children: [
         Container(
-          decoration: BoxDecoration(color: Colors.white.withAlpha(15), shape: BoxShape.circle),
+          decoration: BoxDecoration(color: cs.onSurface.withAlpha(15), shape: BoxShape.circle),
           child: IconButton(
-            icon: const Icon(Icons.mic, color: Colors.white70),
+            icon: Icon(Icons.mic, color: cs.onSurfaceVariant),
             onPressed: () => setState(() => _isKeyboardMode = false),
           ),
         ),
@@ -967,12 +1019,12 @@ class _IntegratedMainPageState extends ConsumerState<IntegratedMainPage> with Ti
         Expanded(
           child: TextField(
             controller: _textController,
-            style: const TextStyle(color: Colors.white),
+            style: TextStyle(color: cs.onSurface),
             decoration: InputDecoration(
               hintText: '输入文字指令...',
-              hintStyle: const TextStyle(color: Colors.white54),
+              hintStyle: TextStyle(color: cs.onSurfaceVariant),
               filled: true,
-              fillColor: Colors.white.withAlpha(20),
+              fillColor: cs.surfaceContainerHighest,
               border: OutlineInputBorder(borderRadius: BorderRadius.circular(30), borderSide: BorderSide.none),
               contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
             ),
@@ -982,9 +1034,9 @@ class _IntegratedMainPageState extends ConsumerState<IntegratedMainPage> with Ti
         ),
         const SizedBox(width: 12),
         Container(
-          decoration: const BoxDecoration(color: Color(0xFF00F0FF), shape: BoxShape.circle),
+          decoration: BoxDecoration(color: cs.primary, shape: BoxShape.circle),
           child: IconButton(
-            icon: const Icon(Icons.send, color: Color(0xFF090A10)),
+            icon: const Icon(Icons.send, color: Colors.white),
             onPressed: _submit,
           ),
         ),
@@ -1001,20 +1053,22 @@ class _ActionPill extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
     return GestureDetector(
       onTap: onTap,
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
         decoration: BoxDecoration(
-          color: Colors.white.withAlpha(15),
+          color: cs.surfaceContainerHighest,
           borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: cs.outline.withAlpha(60)),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon, size: 16, color: const Color(0xFF00F0FF)),
+            Icon(icon, size: 16, color: cs.primary),
             const SizedBox(width: 8),
-            Text(label, style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w500)),
+            Text(label, style: TextStyle(color: cs.onSurface, fontSize: 14, fontWeight: FontWeight.w500)),
           ],
         ),
       ),
@@ -1029,10 +1083,11 @@ class _CircularIconButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
     return Container(
       width: 52, height: 52,
-      decoration: BoxDecoration(color: Colors.white.withAlpha(15), shape: BoxShape.circle),
-      child: IconButton(icon: Icon(icon, color: Colors.white70), onPressed: onPressed),
+      decoration: BoxDecoration(color: cs.onSurface.withAlpha(15), shape: BoxShape.circle),
+      child: IconButton(icon: Icon(icon, color: cs.onSurfaceVariant), onPressed: onPressed),
     );
   }
 }
@@ -1080,6 +1135,7 @@ class _RadarPulseState extends State<_RadarPulse> with SingleTickerProviderState
 
   @override
   Widget build(BuildContext context) {
+    final primaryColor = Theme.of(context).colorScheme.primary;
     return AnimatedBuilder(
       animation: _controller,
       builder: (context, child) {
@@ -1095,7 +1151,7 @@ class _RadarPulseState extends State<_RadarPulse> with SingleTickerProviderState
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
                     border: Border.all(
-                      color: const Color(0xFF00F0FF).withOpacity(1.0 - progress),
+                      color: primaryColor.withAlpha(((1.0 - progress) * 255).toInt()),
                       width: 1.5,
                     ),
                   ),
@@ -1104,11 +1160,11 @@ class _RadarPulseState extends State<_RadarPulse> with SingleTickerProviderState
             Container(
               width: 12,
               height: 12,
-              decoration: const BoxDecoration(
-                color: Color(0xFF00F0FF),
+              decoration: BoxDecoration(
+                color: primaryColor,
                 shape: BoxShape.circle,
                 boxShadow: [
-                  BoxShadow(color: Color(0xFF00F0FF), blurRadius: 8, spreadRadius: 1),
+                  BoxShadow(color: primaryColor, blurRadius: 8, spreadRadius: 1),
                 ],
               ),
             ),

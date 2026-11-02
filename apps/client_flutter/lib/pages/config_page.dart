@@ -26,8 +26,8 @@ class ConfigPage extends ConsumerWidget {
     final llmConfig = ref.watch(llmConfigProvider);
     final ttsConfig = ref.watch(ttsConfigProvider);
     final isScanning = ref.watch(discoveryServiceProvider).isScanning;
-    final theme = Theme.of(context);
-    
+    final cs = Theme.of(context).colorScheme;
+
     final history = ref.watch(chatHistoryProvider);
     final searchQuery = ref.watch(chatHistorySearchQueryProvider);
     final filteredHistory = history.where((e) {
@@ -39,95 +39,74 @@ class ConfigPage extends ConsumerWidget {
       return userMatch || replyMatch || uiMatch;
     }).toList();
 
-    final cyberPrimary = const Color(0xFF00F0FF);
-    final cyberSecondary = const Color(0xFF8A2BE2);
-    final cyberAccent = const Color(0xFFFF007F); // Neon Pink
-    final bgDark = const Color(0xFF090A10);
-    final cardBg = const Color(0xFF121320);
-
     return Scaffold(
-      backgroundColor: bgDark,
       appBar: AppBar(
-        title: const Text(
-          'AIOS 控制中心',
+        title: Text(
+          '系统设置',
           style: TextStyle(
-            color: Colors.white,
+            color: cs.onSurface,
             fontWeight: FontWeight.bold,
-            letterSpacing: 2.0,
-            fontSize: 16,
+            fontSize: 18,
           ),
         ),
-        iconTheme: const IconThemeData(color: Colors.white70),
+        centerTitle: true,
+        iconTheme: IconThemeData(color: cs.onSurface),
         backgroundColor: Colors.transparent,
         elevation: 0,
-        bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(1),
-          child: Container(
-            color: cyberPrimary.withAlpha(40),
-            height: 1,
-          ),
-        ),
+        surfaceTintColor: Colors.transparent,
       ),
       body: ListView(
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
         children: [
           // Section 1: LLM Engine Config
-          _buildSectionHeader('LLM 认知核心', cyberPrimary, context, 
+          _buildSectionHeader('LLM 认知核心', context,
             trailing: IconButton(
-              icon: Icon(Icons.edit_note, color: cyberPrimary),
+              icon: Icon(Icons.edit_note, color: cs.primary, size: 22),
               onPressed: () => _showLlmConfigDialog(context, ref, llmConfig),
             ),
           ),
-          Card(
-            color: cardBg,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(16),
-              side: BorderSide(color: cyberPrimary.withAlpha(40)),
-            ),
+          _buildCard(
+            context,
             child: ListTile(
-              contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
               title: Text(
                 llmConfig.provider.toUpperCase(),
-                style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white, letterSpacing: 1.0),
+                style: TextStyle(fontWeight: FontWeight.bold, color: cs.onSurface, letterSpacing: 0.5),
               ),
               subtitle: Padding(
-                padding: const EdgeInsets.only(top: 6.0),
+                padding: const EdgeInsets.only(top: 4.0),
                 child: Text(
                   '模型: ${llmConfig.model}',
-                  style: TextStyle(fontSize: 12, color: Colors.white.withAlpha(150), fontFamily: 'monospace'),
+                  style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant, fontFamily: 'monospace'),
                 ),
               ),
               trailing: Container(
-                padding: const EdgeInsets.all(8),
+                padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
-                  color: cyberPrimary.withAlpha(20),
-                  shape: BoxShape.circle,
+                  color: cs.primary.withAlpha(20),
+                  borderRadius: BorderRadius.circular(12),
                 ),
-                child: Icon(Icons.psychology, color: cyberPrimary),
+                child: Icon(Icons.psychology, color: cs.primary, size: 22),
               ),
             ),
           ),
-          const SizedBox(height: 32),
-          
+          const SizedBox(height: 24),
+
           // Section 2: Form Factor
-          _buildSectionHeader('设备形态', cyberSecondary, context),
-          Card(
-            color: cardBg,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(16),
-              side: BorderSide(color: cyberSecondary.withAlpha(40)),
-            ),
+          _buildSectionHeader('设备形态', context),
+          _buildCard(
+            context,
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 8.0),
+              padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 4.0),
               child: DropdownButtonHideUnderline(
                 child: DropdownButton<DeviceFormFactor>(
                   isExpanded: true,
                   value: formFactor,
-                  dropdownColor: cardBg,
-                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                  dropdownColor: cs.surface,
+                  style: TextStyle(color: cs.onSurface, fontWeight: FontWeight.w600, fontSize: 14),
                   items: DeviceFormFactor.values.map((e) => DropdownMenuItem(
                     value: e,
-                    child: Text(e.name.toUpperCase(), style: const TextStyle(letterSpacing: 1.5, fontSize: 13)),
+                    child: Text(e.name.toUpperCase(), style: const TextStyle(letterSpacing: 1.0, fontSize: 13)),
                   )).toList(),
                   onChanged: (val) {
                     if (val != null) {
@@ -138,116 +117,129 @@ class ConfigPage extends ConsumerWidget {
               ),
             ),
           ),
-          const SizedBox(height: 32),
-          
+          const SizedBox(height: 24),
+
           // Section 3: MCP Servers Config
           _buildSectionHeader(
-            '模型上下文协议 (MCP)', 
-            cyberAccent, 
+            'MCP 服务节点',
             context,
             trailing: IconButton(
-              icon: Icon(Icons.add_box_outlined, color: cyberAccent),
+              icon: Icon(Icons.add_circle_outline, color: cs.primary, size: 22),
               onPressed: () => _showAddServerDialog(context, ref),
             ),
           ),
           if (servers.isEmpty)
-            _buildEmptyState('未注册任何活跃的 MCP 服务。', cyberAccent)
+            _buildEmptyState('未注册任何活跃的 MCP 服务。', context)
           else
             for (final server in servers)
               Dismissible(
                 key: ValueKey(server.id),
                 direction: DismissDirection.endToStart,
                 background: Container(
-                  color: Colors.redAccent.withAlpha(180),
+                  margin: const EdgeInsets.only(bottom: 8),
+                  decoration: BoxDecoration(
+                    color: Colors.redAccent.withAlpha(30),
+                    borderRadius: BorderRadius.circular(16),
+                  ),
                   alignment: Alignment.centerRight,
                   padding: const EdgeInsets.only(right: 20),
-                  child: const Icon(Icons.delete_sweep, color: Colors.white),
+                  child: const Icon(Icons.delete_outline, color: Colors.redAccent),
                 ),
                 onDismissed: (_) {
                   ref.read(capabilityRegistryProvider.notifier).removeServer(server.id);
                   ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('已移除 ${server.name}')));
                 },
-                child: Card(
-                  color: cardBg,
-                  margin: const EdgeInsets.only(bottom: 10),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    side: BorderSide(color: cyberAccent.withAlpha(30)),
-                  ),
+                child: _buildCard(
+                  context,
+                  margin: const EdgeInsets.only(bottom: 8),
                   child: ListTile(
-                    title: Text(server.name, style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
+                    title: Text(server.name, style: TextStyle(fontWeight: FontWeight.w600, color: cs.onSurface)),
                     subtitle: Text(
-                      '${server.transport.toUpperCase()} • ${server.endpoint}',
-                      style: TextStyle(fontSize: 11, color: Colors.white.withAlpha(140), fontFamily: 'monospace'),
+                      '${server.transport.toUpperCase()} · ${server.endpoint}',
+                      style: TextStyle(fontSize: 11, color: cs.onSurfaceVariant, fontFamily: 'monospace'),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
-                    trailing: const Icon(Icons.api_outlined, color: Colors.greenAccent),
+                    trailing: Container(
+                      padding: const EdgeInsets.all(6),
+                      decoration: BoxDecoration(
+                        color: Colors.green.withAlpha(20),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: const Icon(Icons.api_outlined, color: Colors.green, size: 18),
+                    ),
                   ),
                 ),
               ),
-          const SizedBox(height: 32),
-          
+          const SizedBox(height: 24),
+
           // Section 4: Skills Catalog
           _buildSectionHeader(
-            '智能体核心技能', 
-            cyberSecondary, 
+            '智能体技能',
             context,
             trailing: IconButton(
-              icon: Icon(Icons.add_box_outlined, color: cyberSecondary),
+              icon: Icon(Icons.add_circle_outline, color: cs.primary, size: 22),
               onPressed: () => _showAddSkillDialog(context, ref),
             ),
           ),
           if (skills.isEmpty)
-            _buildEmptyState('未加载任何本地技能。', cyberSecondary)
+            _buildEmptyState('未加载任何本地技能。', context)
           else
             for (final skill in skills)
               Dismissible(
                 key: ValueKey(skill.id),
                 direction: DismissDirection.endToStart,
                 background: Container(
-                  color: Colors.redAccent.withAlpha(180),
+                  margin: const EdgeInsets.only(bottom: 8),
+                  decoration: BoxDecoration(
+                    color: Colors.redAccent.withAlpha(30),
+                    borderRadius: BorderRadius.circular(16),
+                  ),
                   alignment: Alignment.centerRight,
                   padding: const EdgeInsets.only(right: 20),
-                  child: const Icon(Icons.delete_sweep, color: Colors.white),
+                  child: const Icon(Icons.delete_outline, color: Colors.redAccent),
                 ),
                 onDismissed: (_) {
                   ref.read(agentSkillRegistryProvider.notifier).removeSkill(skill.id);
                 },
-                child: Card(
-                  color: cardBg,
-                  margin: const EdgeInsets.only(bottom: 10),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    side: BorderSide(color: cyberSecondary.withAlpha(30)),
-                  ),
+                child: _buildCard(
+                  context,
+                  margin: const EdgeInsets.only(bottom: 8),
                   child: ListTile(
-                    title: Text(skill.name, style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
-                    subtitle: Text(skill.description, style: TextStyle(fontSize: 12, color: Colors.white.withAlpha(140))),
-                    trailing: Icon(Icons.offline_bolt_outlined, color: cyberSecondary),
+                    title: Text(skill.name, style: TextStyle(fontWeight: FontWeight.w600, color: cs.onSurface)),
+                    subtitle: Text(skill.description, style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant)),
+                    trailing: Container(
+                      padding: const EdgeInsets.all(6),
+                      decoration: BoxDecoration(
+                        color: cs.secondary.withAlpha(20),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Icon(Icons.offline_bolt_outlined, color: cs.secondary, size: 18),
+                    ),
                   ),
                 ),
               ),
-          const SizedBox(height: 32),
-          
+          const SizedBox(height: 24),
+
           // Section 5: A2A Cluster
           _buildSectionHeader(
-            '去中心化集群 (A2A)', 
-            cyberPrimary, 
+            '去中心化集群 (A2A)',
             context,
             trailing: Row(
+              mainAxisSize: MainAxisSize.min,
               children: [
                 if (isScanning)
-                  const SizedBox(
+                  SizedBox(
                     width: 16,
                     height: 16,
-                    child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFF00F0FF)),
+                    child: CircularProgressIndicator(strokeWidth: 2, color: cs.primary),
                   ),
-                const SizedBox(width: 8),
+                const SizedBox(width: 4),
                 IconButton(
                   icon: Icon(
                     isScanning ? Icons.portable_wifi_off : Icons.wifi_find,
-                    color: cyberPrimary,
+                    color: cs.primary,
+                    size: 22,
                   ),
                   onPressed: () {
                     final discovery = ref.read(discoveryServiceProvider);
@@ -269,7 +261,7 @@ class ConfigPage extends ConsumerWidget {
           if (a2aAgents.isEmpty)
             _buildEmptyState(
               isScanning ? '正在扫描网络寻找 AIOS 集群...' : '集群扫描仪已离线。',
-              cyberPrimary,
+              context,
             )
           else
             for (final agent in a2aAgents)
@@ -277,39 +269,39 @@ class ConfigPage extends ConsumerWidget {
                 key: ValueKey(agent.id),
                 direction: DismissDirection.endToStart,
                 background: Container(
-                  color: Colors.redAccent.withAlpha(180),
+                  margin: const EdgeInsets.only(bottom: 8),
+                  decoration: BoxDecoration(
+                    color: Colors.redAccent.withAlpha(30),
+                    borderRadius: BorderRadius.circular(16),
+                  ),
                   alignment: Alignment.centerRight,
                   padding: const EdgeInsets.only(right: 20),
-                  child: const Icon(Icons.delete_sweep, color: Colors.white),
+                  child: const Icon(Icons.delete_outline, color: Colors.redAccent),
                 ),
                 onDismissed: (_) {
                   ref.read(a2aAgentRegistryProvider.notifier).removeAgent(agent.id);
                 },
-                child: Card(
-                  color: cardBg,
-                  margin: const EdgeInsets.only(bottom: 10),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    side: BorderSide(color: cyberPrimary.withAlpha(40)),
-                  ),
+                child: _buildCard(
+                  context,
+                  margin: const EdgeInsets.only(bottom: 8),
                   child: ListTile(
-                    title: Text(agent.name, style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
+                    title: Text(agent.name, style: TextStyle(fontWeight: FontWeight.w600, color: cs.onSurface)),
                     subtitle: Text(
                       '${agent.endpoint}\n${agent.description}',
-                      style: TextStyle(fontSize: 11, color: Colors.white.withAlpha(140)),
+                      style: TextStyle(fontSize: 11, color: cs.onSurfaceVariant),
                     ),
                     trailing: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         if (agent.pairingToken != null && agent.pairingToken!.isNotEmpty) ...[
-                          const Icon(Icons.check_circle, color: Colors.green, size: 20),
+                          const Icon(Icons.check_circle, color: Colors.green, size: 18),
                           const SizedBox(width: 4),
                           TextButton(
                             onPressed: () => _showPairingDialog(context, ref, agent),
                             child: const Text('已配对', style: TextStyle(color: Colors.green, fontSize: 12)),
                           ),
                         ] else ...[
-                          const Icon(Icons.warning_amber_rounded, color: Colors.orange, size: 20),
+                          const Icon(Icons.warning_amber_rounded, color: Colors.orange, size: 18),
                           const SizedBox(width: 4),
                           TextButton(
                             onPressed: () => _showPairingDialog(context, ref, agent),
@@ -317,7 +309,7 @@ class ConfigPage extends ConsumerWidget {
                           ),
                         ],
                         IconButton(
-                          icon: Icon(Icons.delete_outline, color: Colors.redAccent.withAlpha(160)),
+                          icon: Icon(Icons.delete_outline, color: Colors.redAccent.withAlpha(160), size: 20),
                           onPressed: () {
                             ref.read(a2aAgentRegistryProvider.notifier).removeAgent(agent.id);
                           },
@@ -328,40 +320,36 @@ class ConfigPage extends ConsumerWidget {
                   ),
                 ),
               ),
-          const SizedBox(height: 32),
+          const SizedBox(height: 24),
 
           // Section 6: Voice Config
-          _buildSectionHeader('语音播报与配置', cyberPrimary, context),
-          Card(
-            color: cardBg,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(16),
-              side: BorderSide(color: cyberPrimary.withAlpha(40)),
-            ),
+          _buildSectionHeader('语音播报配置', context),
+          _buildCard(
+            context,
             child: Padding(
               padding: const EdgeInsets.all(16.0),
               child: Column(
                 children: [
                   SwitchListTile(
-                    title: const Text('自动语音播报', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14)),
-                    subtitle: Text('在收到智能体回复时自动朗读', style: TextStyle(color: Colors.white.withAlpha(150), fontSize: 11)),
+                    title: Text('自动语音播报', style: TextStyle(color: cs.onSurface, fontWeight: FontWeight.w600, fontSize: 14)),
+                    subtitle: Text('收到智能体回复时自动朗读', style: TextStyle(color: cs.onSurfaceVariant, fontSize: 11)),
                     value: ttsConfig.enabled,
-                    activeColor: cyberPrimary,
+                    activeTrackColor: cs.primary,
                     contentPadding: EdgeInsets.zero,
                     onChanged: (val) => ref.read(ttsConfigProvider.notifier).setEnabled(val),
                   ),
-                  const Divider(color: Colors.white10),
+                  Divider(color: cs.outline.withAlpha(30)),
                   Padding(
                     padding: const EdgeInsets.symmetric(vertical: 8.0),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        const Text('播报语言', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14)),
+                        Text('播报语言', style: TextStyle(color: cs.onSurface, fontWeight: FontWeight.w600, fontSize: 14)),
                         DropdownButtonHideUnderline(
                           child: DropdownButton<String>(
                             value: ttsConfig.language,
-                            dropdownColor: cardBg,
-                            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                            dropdownColor: cs.surface,
+                            style: TextStyle(color: cs.onSurface, fontWeight: FontWeight.w600),
                             items: const [
                               DropdownMenuItem(value: 'zh-CN', child: Text('中文 (普通话)')),
                               DropdownMenuItem(value: 'en-US', child: Text('English (US)')),
@@ -376,46 +364,42 @@ class ConfigPage extends ConsumerWidget {
                       ],
                     ),
                   ),
-                  const Divider(color: Colors.white10),
+                  Divider(color: cs.outline.withAlpha(30)),
                   _buildSliderRow('语速', ttsConfig.rate, 0.1, 1.0, (val) {
                     ref.read(ttsConfigProvider.notifier).setRate(val);
-                  }, cyberPrimary),
-                  const Divider(color: Colors.white10),
+                  }, cs),
+                  Divider(color: cs.outline.withAlpha(30)),
                   _buildSliderRow('音高', ttsConfig.pitch, 0.5, 2.0, (val) {
                     ref.read(ttsConfigProvider.notifier).setPitch(val);
-                  }, cyberPrimary),
-                  const Divider(color: Colors.white10),
+                  }, cs),
+                  Divider(color: cs.outline.withAlpha(30)),
                   _buildSliderRow('音量', ttsConfig.volume, 0.0, 1.0, (val) {
                     ref.read(ttsConfigProvider.notifier).setVolume(val);
-                  }, cyberPrimary),
+                  }, cs),
                 ],
               ),
             ),
           ),
-          const SizedBox(height: 32),
+          const SizedBox(height: 24),
 
           // Section 7: Render Backend Config
-          _buildSectionHeader('UI 渲染后端', cyberSecondary, context),
-          Card(
-            color: cardBg,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(16),
-              side: BorderSide(color: cyberSecondary.withAlpha(40)),
-            ),
+          _buildSectionHeader('UI 渲染后端', context),
+          _buildCard(
+            context,
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text('渲染引擎模式', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14)),
+                  Text('渲染引擎模式', style: TextStyle(color: cs.onSurface, fontWeight: FontWeight.w600, fontSize: 14)),
                   DropdownButtonHideUnderline(
                     child: DropdownButton<RenderBackendType>(
                       value: ref.watch(activeRenderBackendTypeProvider),
-                      dropdownColor: cardBg,
-                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                      dropdownColor: cs.surface,
+                      style: TextStyle(color: cs.onSurface, fontWeight: FontWeight.w600),
                       items: const [
-                        DropdownMenuItem(value: RenderBackendType.json, child: Text('JSON (Dynamic Catalog)')),
-                        DropdownMenuItem(value: RenderBackendType.rfw, child: Text('RFW (Remote Flutter Widgets)')),
+                        DropdownMenuItem(value: RenderBackendType.json, child: Text('JSON (Dynamic)')),
+                        DropdownMenuItem(value: RenderBackendType.rfw, child: Text('RFW (Remote)')),
                       ],
                       onChanged: (val) {
                         if (val != null) {
@@ -428,39 +412,34 @@ class ConfigPage extends ConsumerWidget {
               ),
             ),
           ),
-          const SizedBox(height: 32),
+          const SizedBox(height: 24),
 
           // Section 8: Dialogue History
           _buildSectionHeader(
-            '历史对话记录', 
-            cyberAccent, 
+            '历史对话',
             context,
             trailing: history.isEmpty ? null : TextButton.icon(
-              icon: const Icon(Icons.delete_sweep_outlined, color: Colors.redAccent, size: 18),
-              label: const Text('清空历史', style: TextStyle(color: Colors.redAccent, fontSize: 12)),
+              icon: const Icon(Icons.delete_outline, color: Colors.redAccent, size: 18),
+              label: const Text('清空', style: TextStyle(color: Colors.redAccent, fontSize: 12)),
               onPressed: () => _showClearHistoryConfirmDialog(context, ref),
             ),
           ),
-          
+
           // Search Bar
-          Card(
-            color: cardBg,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(16),
-              side: BorderSide(color: cyberPrimary.withAlpha(20)),
-            ),
+          _buildCard(
+            context,
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 2),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
               child: TextField(
-                style: const TextStyle(color: Colors.white, fontSize: 13),
+                style: TextStyle(color: cs.onSurface, fontSize: 13),
                 decoration: InputDecoration(
-                  icon: const Icon(Icons.search, color: Colors.white54, size: 20),
+                  icon: Icon(Icons.search, color: cs.onSurfaceVariant, size: 20),
                   hintText: '搜索历史对话记录...',
-                  hintStyle: const TextStyle(color: Colors.white38, fontSize: 13),
+                  hintStyle: TextStyle(color: cs.onSurfaceVariant.withAlpha(120), fontSize: 13),
                   border: InputBorder.none,
                   suffixIcon: searchQuery.isNotEmpty
                       ? IconButton(
-                          icon: const Icon(Icons.clear, color: Colors.white54, size: 18),
+                          icon: Icon(Icons.clear, color: cs.onSurfaceVariant, size: 18),
                           onPressed: () => ref.read(chatHistorySearchQueryProvider.notifier).state = '',
                         )
                       : null,
@@ -471,12 +450,12 @@ class ConfigPage extends ConsumerWidget {
               ),
             ),
           ),
-          const SizedBox(height: 16),
-          
+          const SizedBox(height: 12),
+
           if (filteredHistory.isEmpty)
             _buildEmptyState(
               searchQuery.isNotEmpty ? '未找到符合搜索条件的历史记录。' : '暂无对话历史记录。',
-              cyberAccent,
+              context,
             )
           else
             ListView.builder(
@@ -490,29 +469,25 @@ class ConfigPage extends ConsumerWidget {
                   direction: DismissDirection.endToStart,
                   background: Container(
                     decoration: BoxDecoration(
-                      color: Colors.redAccent.withAlpha(180),
-                      borderRadius: BorderRadius.circular(12),
+                      color: Colors.redAccent.withAlpha(30),
+                      borderRadius: BorderRadius.circular(16),
                     ),
                     alignment: Alignment.centerRight,
                     padding: const EdgeInsets.only(right: 20),
-                    child: const Icon(Icons.delete_sweep, color: Colors.white),
+                    child: const Icon(Icons.delete_outline, color: Colors.redAccent),
                   ),
                   onDismissed: (_) {
                     ref.read(chatHistoryProvider.notifier).deleteEntry(entry.id);
                     ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('已删除该条对话记录')));
                   },
-                  child: Card(
-                    color: cardBg,
-                    margin: const EdgeInsets.only(bottom: 10),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      side: BorderSide(color: cyberPrimary.withAlpha(15)),
-                    ),
+                  child: _buildCard(
+                    context,
+                    margin: const EdgeInsets.only(bottom: 8),
                     child: ListTile(
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
                       title: Text(
                         entry.userMessage,
-                        style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white, fontSize: 14),
+                        style: TextStyle(fontWeight: FontWeight.w600, color: cs.onSurface, fontSize: 14),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
@@ -524,14 +499,14 @@ class ConfigPage extends ConsumerWidget {
                             entry.textReply != null
                                 ? entry.textReply!
                                 : (entry.uiTree != null ? '[UI 界面: ${entry.uiTree!['component'] ?? '组件'}]' : '（无回复内容）'),
-                            style: TextStyle(fontSize: 12, color: Colors.white.withAlpha(130)),
+                            style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant),
                             maxLines: 2,
                             overflow: TextOverflow.ellipsis,
                           ),
-                          const SizedBox(height: 6),
+                          const SizedBox(height: 4),
                           Text(
                             _formatDateTime(entry.timestamp),
-                            style: TextStyle(fontSize: 10, color: Colors.white.withAlpha(90)),
+                            style: TextStyle(fontSize: 10, color: cs.onSurfaceVariant.withAlpha(120)),
                           ),
                         ],
                       ),
@@ -539,11 +514,11 @@ class ConfigPage extends ConsumerWidget {
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           IconButton(
-                            icon: Icon(Icons.zoom_in, color: cyberPrimary, size: 20),
+                            icon: Icon(Icons.zoom_in, color: cs.primary, size: 20),
                             onPressed: () => _showHistoryDetailDialog(context, ref, entry),
                           ),
                           IconButton(
-                            icon: const Icon(Icons.delete_outline, color: Colors.redAccent, size: 20),
+                            icon: Icon(Icons.delete_outline, color: Colors.redAccent.withAlpha(150), size: 20),
                             onPressed: () {
                               ref.read(chatHistoryProvider.notifier).deleteEntry(entry.id);
                               ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('已删除该条对话记录')));
@@ -564,9 +539,14 @@ class ConfigPage extends ConsumerWidget {
     );
   }
 
-  Widget _buildSectionHeader(String title, Color accentColor, BuildContext context, {Widget? trailing}) {
+  // ---------------------------------------------------------------------------
+  // Shared Widgets
+  // ---------------------------------------------------------------------------
+
+  Widget _buildSectionHeader(String title, BuildContext context, {Widget? trailing}) {
+    final cs = Theme.of(context).colorScheme;
     return Padding(
-      padding: const EdgeInsets.only(bottom: 12.0),
+      padding: const EdgeInsets.only(bottom: 10.0),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
@@ -576,18 +556,17 @@ class ConfigPage extends ConsumerWidget {
                 width: 4,
                 height: 18,
                 decoration: BoxDecoration(
-                  color: accentColor,
+                  color: cs.primary,
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
               const SizedBox(width: 10),
               Text(
                 title,
-                style: const TextStyle(
-                  color: Colors.white,
+                style: TextStyle(
+                  color: cs.onSurface,
                   fontWeight: FontWeight.bold,
-                  fontSize: 14,
-                  letterSpacing: 1.2,
+                  fontSize: 15,
                 ),
               ),
             ],
@@ -598,57 +577,114 @@ class ConfigPage extends ConsumerWidget {
     );
   }
 
-  Widget _buildEmptyState(String msg, Color color) {
+  Widget _buildCard(BuildContext context, {required Widget child, EdgeInsetsGeometry? margin}) {
+    final cs = Theme.of(context).colorScheme;
+    return Card(
+      color: cs.surface,
+      margin: margin ?? EdgeInsets.zero,
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: BorderSide(color: cs.outline.withAlpha(30)),
+      ),
+      child: child,
+    );
+  }
+
+  Widget _buildEmptyState(String msg, BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        color: const Color(0xFF14141E),
+        color: cs.surfaceContainerHighest.withAlpha(80),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: color.withAlpha(15)),
       ),
       child: Center(
         child: Text(
           msg,
-          style: TextStyle(color: Colors.white.withAlpha(120), fontSize: 13),
+          style: TextStyle(color: cs.onSurfaceVariant, fontSize: 13),
         ),
       ),
     );
   }
 
+  Widget _buildSliderRow(String label, double value, double min, double max, ValueChanged<double> onChanged, ColorScheme cs) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(label, style: TextStyle(color: cs.onSurface, fontWeight: FontWeight.w600, fontSize: 13)),
+              Text(value.toStringAsFixed(2), style: TextStyle(color: cs.primary, fontSize: 12, fontWeight: FontWeight.bold)),
+            ],
+          ),
+          SliderTheme(
+            data: SliderThemeData(
+              activeTrackColor: cs.primary,
+              inactiveTrackColor: cs.outline.withAlpha(40),
+              thumbColor: cs.primary,
+              overlayColor: cs.primary.withAlpha(30),
+              trackHeight: 3,
+            ),
+            child: Slider(
+              value: value,
+              min: min,
+              max: max,
+              onChanged: onChanged,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _formatDateTime(DateTime dt) {
+    return "${dt.year}-${dt.month.toString().padLeft(2, '0')}-${dt.day.toString().padLeft(2, '0')} ${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}";
+  }
+
+  // ---------------------------------------------------------------------------
+  // Dialogs
+  // ---------------------------------------------------------------------------
+
   void _showAddServerDialog(BuildContext context, WidgetRef ref) {
     final nameController = TextEditingController();
     final endpointController = TextEditingController();
     String transport = 'http';
-    
+
     showDialog(
       context: context,
       builder: (context) {
+        final cs = Theme.of(context).colorScheme;
         return AlertDialog(
-          backgroundColor: const Color(0xFF0E0E18),
+          backgroundColor: cs.surface,
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-            side: const BorderSide(color: Color(0xFF00F0FF), width: 0.5),
+            borderRadius: BorderRadius.circular(20),
+            side: BorderSide(color: cs.outline.withAlpha(40)),
           ),
-          title: const Text('添加 MCP 服务节点', style: TextStyle(color: Colors.white)),
+          title: Text('添加 MCP 服务节点', style: TextStyle(color: cs.onSurface, fontWeight: FontWeight.bold)),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               TextField(
                 controller: nameController,
-                style: const TextStyle(color: Colors.white),
+                style: TextStyle(color: cs.onSurface),
                 decoration: InputDecoration(
                   labelText: '名称 (例如 Home Assistant)',
-                  labelStyle: TextStyle(color: Colors.white.withAlpha(120)),
-                  enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: Colors.white.withAlpha(30))),
+                  labelStyle: TextStyle(color: cs.onSurfaceVariant),
+                  enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: cs.outline.withAlpha(60))),
+                  focusedBorder: UnderlineInputBorder(borderSide: BorderSide(color: cs.primary)),
                 ),
               ),
               DropdownButtonFormField<String>(
-                value: transport,
-                dropdownColor: const Color(0xFF0E0E18),
-                style: const TextStyle(color: Colors.white),
+                initialValue: transport,
+                dropdownColor: cs.surface,
+                style: TextStyle(color: cs.onSurface),
                 decoration: InputDecoration(
                   labelText: '传输协议',
-                  labelStyle: TextStyle(color: Colors.white.withAlpha(120)),
+                  labelStyle: TextStyle(color: cs.onSurfaceVariant),
                 ),
                 items: const [
                   DropdownMenuItem(value: 'http', child: Text('HTTP / SSE 端点')),
@@ -659,11 +695,12 @@ class ConfigPage extends ConsumerWidget {
               ),
               TextField(
                 controller: endpointController,
-                style: const TextStyle(color: Colors.white),
+                style: TextStyle(color: cs.onSurface),
                 decoration: InputDecoration(
                   labelText: '端点 URL / 本地执行命令路径',
-                  labelStyle: TextStyle(color: Colors.white.withAlpha(120)),
-                  enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: Colors.white.withAlpha(30))),
+                  labelStyle: TextStyle(color: cs.onSurfaceVariant),
+                  enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: cs.outline.withAlpha(60))),
+                  focusedBorder: UnderlineInputBorder(borderSide: BorderSide(color: cs.primary)),
                 ),
               ),
             ],
@@ -671,10 +708,10 @@ class ConfigPage extends ConsumerWidget {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
-              child: Text('取消', style: TextStyle(color: Colors.white.withAlpha(150))),
+              child: Text('取消', style: TextStyle(color: cs.onSurfaceVariant)),
             ),
             FilledButton(
-              style: FilledButton.styleFrom(backgroundColor: const Color(0xFF00F0FF), foregroundColor: Colors.black),
+              style: FilledButton.styleFrom(backgroundColor: cs.primary, foregroundColor: Colors.white),
               onPressed: () {
                 final entry = McpServerEntry(
                   id: const Uuid().v4(),
@@ -698,45 +735,49 @@ class ConfigPage extends ConsumerWidget {
     final nameController = TextEditingController();
     final descController = TextEditingController();
     final endpointController = TextEditingController();
-    
+
     showDialog(
       context: context,
       builder: (context) {
+        final cs = Theme.of(context).colorScheme;
         return AlertDialog(
-          backgroundColor: const Color(0xFF0E0E18),
+          backgroundColor: cs.surface,
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-            side: const BorderSide(color: Color(0xFF8A2BE2), width: 0.5),
+            borderRadius: BorderRadius.circular(20),
+            side: BorderSide(color: cs.outline.withAlpha(40)),
           ),
-          title: const Text('安装核心技能', style: TextStyle(color: Colors.white)),
+          title: Text('安装核心技能', style: TextStyle(color: cs.onSurface, fontWeight: FontWeight.bold)),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               TextField(
                 controller: nameController,
-                style: const TextStyle(color: Colors.white),
+                style: TextStyle(color: cs.onSurface),
                 decoration: InputDecoration(
                   labelText: '技能标识符 (例如 ui-style-minimal)',
-                  labelStyle: TextStyle(color: Colors.white.withAlpha(120)),
-                  enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: Colors.white.withAlpha(30))),
+                  labelStyle: TextStyle(color: cs.onSurfaceVariant),
+                  enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: cs.outline.withAlpha(60))),
+                  focusedBorder: UnderlineInputBorder(borderSide: BorderSide(color: cs.primary)),
                 ),
               ),
               TextField(
                 controller: descController,
-                style: const TextStyle(color: Colors.white),
+                style: TextStyle(color: cs.onSurface),
                 decoration: InputDecoration(
                   labelText: '技能描述',
-                  labelStyle: TextStyle(color: Colors.white.withAlpha(120)),
-                  enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: Colors.white.withAlpha(30))),
+                  labelStyle: TextStyle(color: cs.onSurfaceVariant),
+                  enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: cs.outline.withAlpha(60))),
+                  focusedBorder: UnderlineInputBorder(borderSide: BorderSide(color: cs.primary)),
                 ),
               ),
               TextField(
                 controller: endpointController,
-                style: const TextStyle(color: Colors.white),
+                style: TextStyle(color: cs.onSurface),
                 decoration: InputDecoration(
                   labelText: '技能端点 / 注册表路径',
-                  labelStyle: TextStyle(color: Colors.white.withAlpha(120)),
-                  enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: Colors.white.withAlpha(30))),
+                  labelStyle: TextStyle(color: cs.onSurfaceVariant),
+                  enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: cs.outline.withAlpha(60))),
+                  focusedBorder: UnderlineInputBorder(borderSide: BorderSide(color: cs.primary)),
                 ),
               ),
             ],
@@ -744,10 +785,10 @@ class ConfigPage extends ConsumerWidget {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
-              child: Text('取消', style: TextStyle(color: Colors.white.withAlpha(150))),
+              child: Text('取消', style: TextStyle(color: cs.onSurfaceVariant)),
             ),
             FilledButton(
-              style: FilledButton.styleFrom(backgroundColor: const Color(0xFF8A2BE2), foregroundColor: Colors.white),
+              style: FilledButton.styleFrom(backgroundColor: cs.secondary, foregroundColor: Colors.white),
               onPressed: () {
                 final entry = AgentSkillEntry(
                   id: const Uuid().v4(),
@@ -775,26 +816,27 @@ class ConfigPage extends ConsumerWidget {
     showDialog(
       context: context,
       builder: (context) {
+        final cs = Theme.of(context).colorScheme;
         return StatefulBuilder(
           builder: (context, setState) {
             return AlertDialog(
-              backgroundColor: const Color(0xFF0E0E18),
+              backgroundColor: cs.surface,
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
-                side: const BorderSide(color: Color(0xFF00F0FF), width: 0.5),
+                borderRadius: BorderRadius.circular(20),
+                side: BorderSide(color: cs.outline.withAlpha(40)),
               ),
-              title: const Text('配置本地 LLM 引擎', style: TextStyle(color: Colors.white)),
+              title: Text('配置本地 LLM 引擎', style: TextStyle(color: cs.onSurface, fontWeight: FontWeight.bold)),
               content: SingleChildScrollView(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     DropdownButtonFormField<String>(
-                      value: provider,
-                      dropdownColor: const Color(0xFF0E0E18),
-                      style: const TextStyle(color: Colors.white),
+                      initialValue: provider,
+                      dropdownColor: cs.surface,
+                      style: TextStyle(color: cs.onSurface),
                       decoration: InputDecoration(
                         labelText: '服务商',
-                        labelStyle: TextStyle(color: Colors.white.withAlpha(120)),
+                        labelStyle: TextStyle(color: cs.onSurfaceVariant),
                       ),
                       items: const [
                         DropdownMenuItem(value: 'gemini', child: Text('Gemini')),
@@ -810,30 +852,33 @@ class ConfigPage extends ConsumerWidget {
                     if (provider != 'gemini')
                       TextField(
                         controller: baseUrlController,
-                        style: const TextStyle(color: Colors.white),
+                        style: TextStyle(color: cs.onSurface),
                         decoration: InputDecoration(
                           labelText: 'Base URL (可选)',
-                          labelStyle: TextStyle(color: Colors.white.withAlpha(120)),
-                          enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: Colors.white.withAlpha(30))),
+                          labelStyle: TextStyle(color: cs.onSurfaceVariant),
+                          enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: cs.outline.withAlpha(60))),
+                          focusedBorder: UnderlineInputBorder(borderSide: BorderSide(color: cs.primary)),
                         ),
                       ),
                     TextField(
                       controller: apiKeyController,
-                      style: const TextStyle(color: Colors.white),
+                      style: TextStyle(color: cs.onSurface),
                       decoration: InputDecoration(
                         labelText: 'API Token 密钥',
-                        labelStyle: TextStyle(color: Colors.white.withAlpha(120)),
-                        enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: Colors.white.withAlpha(30))),
+                        labelStyle: TextStyle(color: cs.onSurfaceVariant),
+                        enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: cs.outline.withAlpha(60))),
+                        focusedBorder: UnderlineInputBorder(borderSide: BorderSide(color: cs.primary)),
                       ),
                       obscureText: true,
                     ),
                     TextField(
                       controller: modelController,
-                      style: const TextStyle(color: Colors.white),
+                      style: TextStyle(color: cs.onSurface),
                       decoration: InputDecoration(
                         labelText: '模型标识符名称',
-                        labelStyle: TextStyle(color: Colors.white.withAlpha(120)),
-                        enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: Colors.white.withAlpha(30))),
+                        labelStyle: TextStyle(color: cs.onSurfaceVariant),
+                        enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: cs.outline.withAlpha(60))),
+                        focusedBorder: UnderlineInputBorder(borderSide: BorderSide(color: cs.primary)),
                       ),
                     ),
                   ],
@@ -842,10 +887,10 @@ class ConfigPage extends ConsumerWidget {
               actions: [
                 TextButton(
                   onPressed: () => Navigator.pop(context),
-                  child: Text('取消', style: TextStyle(color: Colors.white.withAlpha(150))),
+                  child: Text('取消', style: TextStyle(color: cs.onSurfaceVariant)),
                 ),
                 FilledButton(
-                  style: FilledButton.styleFrom(backgroundColor: const Color(0xFF00F0FF), foregroundColor: Colors.black),
+                  style: FilledButton.styleFrom(backgroundColor: cs.primary, foregroundColor: Colors.white),
                   onPressed: () {
                     final updatedConfig = config.copyWith(
                       provider: provider,
@@ -866,62 +911,26 @@ class ConfigPage extends ConsumerWidget {
     );
   }
 
-  Widget _buildSliderRow(String label, double value, double min, double max, ValueChanged<double> onChanged, Color activeColor) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8.0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(label, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
-              Text(value.toStringAsFixed(2), style: TextStyle(color: activeColor, fontSize: 12, fontWeight: FontWeight.bold)),
-            ],
-          ),
-          SliderTheme(
-            data: SliderThemeData(
-              activeTrackColor: activeColor,
-              inactiveTrackColor: Colors.white10,
-              thumbColor: activeColor,
-              overlayColor: activeColor.withAlpha(40),
-              trackHeight: 3,
-            ),
-            child: Slider(
-              value: value,
-              min: min,
-              max: max,
-              onChanged: onChanged,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  String _formatDateTime(DateTime dt) {
-    return "${dt.year}-${dt.month.toString().padLeft(2, '0')}-${dt.day.toString().padLeft(2, '0')} ${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}";
-  }
-
   void _showClearHistoryConfirmDialog(BuildContext context, WidgetRef ref) {
     showDialog(
       context: context,
       builder: (context) {
+        final cs = Theme.of(context).colorScheme;
         return AlertDialog(
-          backgroundColor: const Color(0xFF0E0E18),
+          backgroundColor: cs.surface,
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(20),
             side: const BorderSide(color: Colors.redAccent, width: 0.5),
           ),
-          title: const Text('清空历史对话', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-          content: const Text(
+          title: Text('清空历史对话', style: TextStyle(color: cs.onSurface, fontWeight: FontWeight.bold)),
+          content: Text(
             '确定要清空所有的历史对话记录吗？此操作不可逆。',
-            style: TextStyle(color: Colors.white70),
+            style: TextStyle(color: cs.onSurfaceVariant),
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
-              child: Text('取消', style: TextStyle(color: Colors.white.withAlpha(150))),
+              child: Text('取消', style: TextStyle(color: cs.onSurfaceVariant)),
             ),
             FilledButton(
               style: FilledButton.styleFrom(backgroundColor: Colors.redAccent),
@@ -956,23 +965,23 @@ class ConfigPage extends ConsumerWidget {
   }
 
   void _showHistoryDetailDialog(BuildContext context, WidgetRef ref, ChatHistoryEntry entry) {
-    final cyberPrimary = const Color(0xFF00F0FF);
     final componentsList = entry.uiTree != null ? _extractComponents(entry.uiTree!) : <String>[];
 
     showDialog(
       context: context,
       builder: (context) {
+        final cs = Theme.of(context).colorScheme;
         return AlertDialog(
-          backgroundColor: const Color(0xFF0E0E18),
+          backgroundColor: cs.surface,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(20),
-            side: BorderSide(color: cyberPrimary.withAlpha(40), width: 0.5),
+            side: BorderSide(color: cs.outline.withAlpha(40)),
           ),
           title: Row(
             children: [
-              Icon(Icons.history_toggle_off, color: cyberPrimary),
+              Icon(Icons.history_toggle_off, color: cs.primary),
               const SizedBox(width: 10),
-              const Text('对话详情记录', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
+              Text('对话详情', style: TextStyle(color: cs.onSurface, fontWeight: FontWeight.bold, fontSize: 16)),
             ],
           ),
           content: SingleChildScrollView(
@@ -980,34 +989,34 @@ class ConfigPage extends ConsumerWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Text('用户指令', style: TextStyle(color: Colors.white70, fontSize: 11, fontWeight: FontWeight.bold)),
+                Text('用户指令', style: TextStyle(color: cs.onSurfaceVariant, fontSize: 11, fontWeight: FontWeight.bold)),
                 const SizedBox(height: 6),
                 Container(
                   width: double.infinity,
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: Colors.white.withAlpha(10),
-                    borderRadius: BorderRadius.circular(10),
+                    color: cs.surfaceContainerHighest,
+                    borderRadius: BorderRadius.circular(12),
                   ),
                   child: Text(
                     entry.userMessage,
-                    style: const TextStyle(color: Colors.white, fontSize: 14),
+                    style: TextStyle(color: cs.onSurface, fontSize: 14),
                   ),
                 ),
                 const SizedBox(height: 20),
-                const Text('助手回复', style: TextStyle(color: Colors.white70, fontSize: 11, fontWeight: FontWeight.bold)),
+                Text('助手回复', style: TextStyle(color: cs.onSurfaceVariant, fontSize: 11, fontWeight: FontWeight.bold)),
                 const SizedBox(height: 6),
                 if (entry.textReply != null)
                   Container(
                     width: double.infinity,
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: Colors.white.withAlpha(10),
-                      borderRadius: BorderRadius.circular(10),
+                      color: cs.surfaceContainerHighest,
+                      borderRadius: BorderRadius.circular(12),
                     ),
                     child: Text(
                       entry.textReply!,
-                      style: const TextStyle(color: Colors.white70, fontSize: 14, height: 1.4),
+                      style: TextStyle(color: cs.onSurfaceVariant, fontSize: 14, height: 1.4),
                     ),
                   )
                 else
@@ -1015,25 +1024,25 @@ class ConfigPage extends ConsumerWidget {
                     componentsList.isNotEmpty
                         ? '界面输出: ${componentsList.join(" ➔ ")}'
                         : '（无文字回复）',
-                    style: const TextStyle(color: Colors.white38, fontSize: 13),
+                    style: TextStyle(color: cs.onSurfaceVariant.withAlpha(100), fontSize: 13),
                   ),
                 if (entry.uiTree != null) ...[
                   const SizedBox(height: 20),
-                  const Text('卡片数据细节', style: TextStyle(color: Colors.white70, fontSize: 11, fontWeight: FontWeight.bold)),
+                  Text('卡片数据细节', style: TextStyle(color: cs.onSurfaceVariant, fontSize: 11, fontWeight: FontWeight.bold)),
                   const SizedBox(height: 6),
                   Container(
                     width: double.infinity,
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: Colors.black.withAlpha(80),
-                      borderRadius: BorderRadius.circular(10),
-                      border: Border.all(color: Colors.white.withAlpha(10)),
+                      color: cs.surfaceContainerHighest,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: cs.outline.withAlpha(30)),
                     ),
                     child: SingleChildScrollView(
                       scrollDirection: Axis.horizontal,
                       child: Text(
                         const JsonEncoder.withIndent('  ').convert(entry.uiTree),
-                        style: const TextStyle(color: Colors.greenAccent, fontSize: 11, fontFamily: 'monospace'),
+                        style: TextStyle(color: Colors.green.shade400, fontSize: 11, fontFamily: 'monospace'),
                       ),
                     ),
                   ),
@@ -1041,7 +1050,7 @@ class ConfigPage extends ConsumerWidget {
                 const SizedBox(height: 12),
                 Text(
                   '时间: ${_formatDateTime(entry.timestamp)}',
-                  style: TextStyle(color: Colors.white.withAlpha(100), fontSize: 11),
+                  style: TextStyle(color: cs.onSurfaceVariant.withAlpha(120), fontSize: 11),
                 ),
               ],
             ),
@@ -1049,16 +1058,16 @@ class ConfigPage extends ConsumerWidget {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
-              child: Text('关闭', style: TextStyle(color: Colors.white.withAlpha(150))),
+              child: Text('关闭', style: TextStyle(color: cs.onSurfaceVariant)),
             ),
             if (entry.uiTree != null || entry.textReply != null)
               ElevatedButton.icon(
                 icon: const Icon(Icons.restore_page_outlined, size: 18),
-                label: const Text('应用并返回主页'),
+                label: const Text('应用并返回'),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: cyberPrimary,
-                  foregroundColor: Colors.black,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  backgroundColor: cs.primary,
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                 ),
                 onPressed: () {
                   ref.read(latestUiTreeProvider.notifier).state =
@@ -1079,41 +1088,42 @@ class ConfigPage extends ConsumerWidget {
     showDialog(
       context: context,
       builder: (context) {
+        final cs = Theme.of(context).colorScheme;
         return AlertDialog(
-          backgroundColor: const Color(0xFF161824),
+          backgroundColor: cs.surface,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(20),
-            side: BorderSide(color: const Color(0xFF7C5CFF).withOpacity(0.3)),
+            side: BorderSide(color: cs.secondary.withAlpha(60)),
           ),
           title: Text(
             '配对节点: ${agent.name}',
-            style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+            style: TextStyle(color: cs.onSurface, fontSize: 18, fontWeight: FontWeight.bold),
           ),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              const Text(
+              Text(
                 '请输入该无界面守护节点启动时控制台输出的配对 Token：',
-                style: TextStyle(color: Color(0xFFA0A5C0), fontSize: 13, height: 1.4),
+                style: TextStyle(color: cs.onSurfaceVariant, fontSize: 13, height: 1.4),
               ),
               const SizedBox(height: 16),
               TextField(
                 controller: controller,
-                style: const TextStyle(color: Colors.white, fontFamily: 'Courier', fontSize: 14),
+                style: TextStyle(color: cs.onSurface, fontFamily: 'Courier', fontSize: 14),
                 decoration: InputDecoration(
                   hintText: 'Pairing Token (UUID)',
-                  hintStyle: TextStyle(color: Colors.white.withOpacity(0.3)),
+                  hintStyle: TextStyle(color: cs.onSurfaceVariant.withAlpha(80)),
                   filled: true,
-                  fillColor: Colors.black.withOpacity(0.3),
+                  fillColor: cs.surfaceContainerHighest,
                   contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                   enabledBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide(color: Colors.white.withOpacity(0.1)),
+                    borderSide: BorderSide(color: cs.outline.withAlpha(40)),
                   ),
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(color: Color(0xFF7C5CFF)),
+                    borderSide: BorderSide(color: cs.secondary),
                   ),
                 ),
               ),
@@ -1122,13 +1132,13 @@ class ConfigPage extends ConsumerWidget {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
-              child: const Text('取消', style: TextStyle(color: Color(0xFFA0A5C0))),
+              child: Text('取消', style: TextStyle(color: cs.onSurfaceVariant)),
             ),
             ElevatedButton(
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF7C5CFF),
+                backgroundColor: cs.secondary,
                 foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
               ),
               onPressed: () {
                 ref.read(a2aAgentRegistryProvider.notifier).updatePairingToken(agent.id, controller.text);
